@@ -1,0 +1,60 @@
+---
+title: "workshop"
+output: html_document
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(tidyverse)
+library(magrittr)
+library(here)
+library(sf)
+library(tmap)
+```
+
+```{r}
+presence <- read_csv(here("data", "tapewormSDM", "PresenceData.csv"))
+hosts <- read_csv(here("data", "tapewormSDM", "hosts.csv"))
+
+world <- spData::world
+```
+Filter presence data to definitive hosts
+```{r}
+definitive <- hosts %>% filter(host_stage == "definitive") %>% pull(IUCN_name)
+pres_def <- presence %>% filter(HostName %in% definitive)
+pres_vulpes_vulpes <- pres_def %>% filter(HostName == "Vulpes vulpes")
+```
+
+```{r}
+vulpes_sf <- read_sf(here("data/vulpes_vulpes_shp/data_0.shp"))
+
+crs <- st_crs(vulpes_sf)
+
+vulpes_simp <- st_simplify(vulpes_sf, dTolerance=2000)
+
+
+vulpes_pts <- pres_vulpes_vulpes %>% drop_na(., Longitude, Latitude) %>% st_as_sf(., coords=c("Longitude", "Latitude"), crs = crs)
+```
+
+
+
+```{r}
+usa_can_sf <- world %>% filter(iso_a2 %in% c("US", "CA"))
+usa_can_bbox <- st_bbox(usa_can_sf)
+
+
+vulpes_usa_can <- st_intersection(usa_can_sf, vulpes_simp) #should subset so only overlapping regions
+vulpes_pts_usa_can <- st_intersection(vulpes_usa_can, vulpes_pts) #should subset to points within polygon
+tm_shape(vulpes_usa_can) + tm_borders() +  #vulpes vulpes range
+tm_shape(vulpes_pts_usa_can) + tm_dots() #presence of parasite
+```
+
+
+
+
+
