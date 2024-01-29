@@ -9,7 +9,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
-```{r}
+```{r, message = F}
 library(tidyverse)
 library(magrittr)
 library(here)
@@ -33,12 +33,12 @@ pres_vulpes_vulpes <- pres_def %>% filter(HostName == "Vulpes vulpes")
 ```{r}
 vulpes_sf <- read_sf(here("data/vulpes_vulpes_shp/data_0.shp"))
 
-crs <- st_crs(vulpes_sf)
+target_crs <- st_crs(vulpes_sf)
 
 vulpes_simp <- st_simplify(vulpes_sf, dTolerance=2000)
 
 
-vulpes_pts <- pres_vulpes_vulpes %>% drop_na(., Longitude, Latitude) %>% st_as_sf(., coords=c("Longitude", "Latitude"), crs = crs)
+vulpes_pts <- pres_vulpes_vulpes %>% drop_na(., Longitude, Latitude) %>% st_as_sf(., coords=c("Longitude", "Latitude"), crs = target_crs)
 ```
 
 
@@ -54,6 +54,63 @@ tm_shape(vulpes_usa_can) + tm_borders() +  #vulpes vulpes range
 tm_shape(vulpes_pts_usa_can) + tm_dots() #presence of parasite
 ```
 
+
+
+```{r}
+ecoregions <- read_sf("/Users/danielsuh/Desktop/Terrestrial_Ecoregions/Terrestrial_Ecoregions.shp")
+new_realms <- read_sf("/Users/danielsuh/Desktop/zoogeographical_realms/newRealms.shp") %>% st_make_valid()
+realms <- read_sf("/Users/danielsuh/Desktop/zoogeographical_realms/realms.shp") %>% st_make_valid()
+regions <- read_sf("/Users/danielsuh/Desktop/zoogeographical_realms/regions.shp") %>% st_make_valid()
+```
+
+```{r}
+ecoregions_simp <- st_simplify(ecoregions, dTolerance=2000)
+```
+
+
+```{r}
+target_crs <- st_crs("+proj=cea +lon_0=0 +x_0=0 +y_0=0 +lat_ts=45 +ellps=WGS84 +datum=WGS84 +units=m +no_defs")
+
+new_realms <- new_realms %>% st_transform(4326) %>% st_make_valid()
+
+offset <- 180 - 0
+
+polygon <- st_polygon(x = list(rbind(
+  c(-0.0001 - offset, 90),
+  c(0 - offset, 90),
+  c(0 - offset, -90),
+  c(-0.0001 - offset, -90),
+  c(-0.0001 - offset, 90)
+))) %>%
+  st_sfc() %>%
+  st_set_crs(4326)
+
+new_realms_fixed <- new_realms %>% st_difference(polygon) %>% st_make_valid()
+
+new_realms_fixed <- st_transform(new_realms_fixed, st_crs(target_crs))
+
+tm_shape(new_realms_fixed) + tm_borders()
+```
+
+```{r}
+ecoregions_americas <- ecoregions_simp %>% filter(WWF_REALM2 %in% c("Nearctic", "Neotropic"))
+new_realms_americas <- new_realms_fixed %>% filter(Realm %in% c("Nearctic", "Neotropical")) %>% st_bbox(., )
+```
+
+
+
+
+```{r}
+new_realms_americas %>% tm_shape(., bbox = st_bbox(ecoregions_americas)) + tm_fill("Realm") + 
+  ecoregions_americas %>% tm_shape() + tm_borders()
+```
+
+
+```{r}
+#tm_shape(new_realms) + tm_borders() + tmap_options(check.and.fix=T)
+tm_shape(new_realms) + tm_borders() + tm_fill(col = "Realm")
+tm_shape(regions) + tm_borders() + tm_fill(col = "Regions")
+```
 
 
 
