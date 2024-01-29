@@ -69,32 +69,32 @@ ecoregions_simp <- st_simplify(ecoregions, dTolerance=2000)
 
 
 ```{r}
-target_crs <- st_crs("+proj=cea +lon_0=0 +x_0=0 +y_0=0 +lat_ts=45 +ellps=WGS84 +datum=WGS84 +units=m +no_defs")
-
-new_realms <- new_realms %>% st_transform(4326) %>% st_make_valid()
-
-offset <- 180 - 0
-
-polygon <- st_polygon(x = list(rbind(
-  c(-0.0001 - offset, 90),
-  c(0 - offset, 90),
-  c(0 - offset, -90),
-  c(-0.0001 - offset, -90),
-  c(-0.0001 - offset, 90)
-))) %>%
-  st_sfc() %>%
-  st_set_crs(4326)
-
-new_realms_fixed <- new_realms %>% st_difference(polygon) %>% st_make_valid()
-
-new_realms_fixed <- st_transform(new_realms_fixed, st_crs(target_crs))
-
-tm_shape(new_realms_fixed) + tm_borders()
+# target_crs <- st_crs("+proj=cea +lon_0=0 +x_0=0 +y_0=0 +lat_ts=45 +ellps=WGS84 +datum=WGS84 +units=m +no_defs")
+# 
+# new_realms <- new_realms %>% st_transform(4326) %>% st_make_valid()
+# 
+# offset <- 180 - 0
+# 
+# polygon <- st_polygon(x = list(rbind(
+#   c(-0.0001 - offset, 90),
+#   c(0 - offset, 90),
+#   c(0 - offset, -90),
+#   c(-0.0001 - offset, -90),
+#   c(-0.0001 - offset, 90)
+# ))) %>%
+#   st_sfc() %>%
+#   st_set_crs(4326)
+# 
+# new_realms_fixed <- new_realms %>% st_difference(polygon) %>% st_make_valid()
+# 
+# new_realms_fixed <- st_transform(new_realms_fixed, st_crs(target_crs))
+# 
+# tm_shape(new_realms_fixed) + tm_borders()
 ```
 
 ```{r}
 ecoregions_americas <- ecoregions_simp %>% filter(WWF_REALM2 %in% c("Nearctic", "Neotropic"))
-new_realms_americas <- new_realms_fixed %>% filter(Realm %in% c("Nearctic", "Neotropical")) %>% st_bbox(., )
+new_realms_americas <- new_realms_fixed %>% filter(Realm %in% c("Nearctic", "Neotropical"))
 ```
 
 
@@ -113,5 +113,15 @@ tm_shape(regions) + tm_borders() + tm_fill(col = "Regions")
 ```
 
 
+```{r}
+gmpd <- read_csv(here("data", "GMPD", "GMPD_main.csv"))
+gmpd %<>% drop_na(., Longitude, Latitude) %>% st_as_sf(., coords=c("Longitude", "Latitude"), crs = "WGS84")
+```
+
+
+```{r}
+tm_shape(ecoregions_americas) + tm_borders() + tm_shape(gmpd) + tm_dots()
+st_intersection(gmpd, ecoregions_americas)
+```
 
 
