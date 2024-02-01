@@ -110,7 +110,7 @@ new_realms_americas %>% tm_shape(., bbox = st_bbox(ecoregions_americas)) + tm_fi
 
 ```{r}
 #tm_shape(new_realms) + tm_borders() + tmap_options(check.and.fix=T)
-tm_shape(new_realms_fixed) + tm_borders() + tm_fill(col = "Realm")
+tm_shape(new_realms_fixed) + tm_borders() + tm_fill(col = "Realm") + tm_shape(ecoregions_simp) + tm_borders()
 tm_shape(regions) + tm_borders() + tm_fill(col = "Regions")
 ```
 
@@ -125,5 +125,15 @@ gmpd %<>% drop_na(., Longitude, Latitude) %>% st_as_sf(., coords=c("Longitude", 
 tm_shape(ecoregions_americas) + tm_borders() + tm_shape(gmpd) + tm_dots()
 st_intersection(gmpd, ecoregions_americas)
 ```
+
+```{r}
+new_realms_americas %>% tm_shape(., bbox = st_bbox(ecoregions_americas)) + tm_fill("Realm") + 
+  gmpd %>% tm_shape() + tm_dots()
+
+new_realms_americas %>% tm_shape(., bbox = st_bbox(ecoregions_americas)) + tm_fill("Realm") + 
+  ecoregions_americas %>% tm_shape() + tm_borders() +
+  gmpd %>% tm_shape() + tm_dots()
+```
+
 
 
