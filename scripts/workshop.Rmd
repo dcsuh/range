@@ -135,5 +135,19 @@ new_realms_americas %>% tm_shape(., bbox = st_bbox(ecoregions_americas)) + tm_fi
   gmpd %>% tm_shape() + tm_dots()
 ```
 
+Presence of E. multilocularis
+```{r}
+pres_sf <- presence %>% drop_na(Latitude) %>% st_as_sf(., coords=c("Longitude", "Latitude"), crs = "WGS84")
+```
+
+```{r}
+new_realms_na <- new_realms_americas %>% filter(Realm == "Nearctic")
+ecoregions_na <- ecoregions_americas %>% filter(WWF_REALM2 == "Nearctic")
+new_realms_na %>% tm_shape(., bbox = st_bbox(ecoregions_na)) + tm_fill("Realm") + 
+  ecoregions_na %>% tm_shape() + tm_borders() +
+  pres_sf %>% tm_shape() + tm_dots() + 
+  tm_layout(main.title = "North American E. Multilocularis presence")
+```
+
 
 
