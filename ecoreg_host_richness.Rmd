@@ -1,0 +1,58 @@
+---
+title: "gmpd_host_richness"
+output: html_document
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(here)
+library(tidyverse)
+
+library(sf)
+```
+
+```{r}
+ecoregions <- sf::st_read("/Users/danielsuh/Desktop/Terrestrial_Ecoregions/Terrestrial_Ecoregions.shp")
+mamms <- sf::st_read("/Users/danielsuh/Desktop/iucn/MAMMALS_TERRESTRIAL_ONLY/MAMMALS_TERRESTRIAL_ONLY.shp")
+gmpd <- read_csv(here("data", "GMPD", "GMPD_main.csv"))
+```
+
+```{r}
+st_crs(mamms) <- st_crs(ecoregions)
+```
+
+
+
+Get list of GMPD hosts with point data
+```{r}
+gmpd_hosts <- gmpd %>% filter(!is.na(Longitude)) %>% filter(HostEnvironment == "terrestrial") %>% select(Group, HostCorrectedName, HostOrder, HostFamily) %>% distinct()
+```
+
+Get shapefiles for gmpd hosts
+```{r}
+mamms_gmpd <- mamms %>% filter(sci_name %in% gmpd_hosts$HostCorrectedName)
+```
+
+
+```{r}
+eco_head <- head(ecoregions)
+```
+
+```{r}
+sgbp <- st_intersects(x=ecoregions, y=mamms_gmpd, sparse=F)
+```
+
+
+
+
+```{r}
+ecoregions_host_richness <- mamms_gmpd %>% mutate(intersection=as.integer(st_intersects(geometry, ecoregions)),
+                                                  ecoRegion=if_else(is.na(intersection),'',ecoregions$ECO_NAME[intersection]))
+```
+
+
+
