@@ -1,5 +1,5 @@
 ---
-title: "gmpd_host_richness"
+title: "ecoreg_host_richness"
 output: html_document
 date: "`r Sys.Date()`"
 ---
@@ -13,18 +13,22 @@ library(here)
 library(tidyverse)
 library(magrittr)
 
+
 library(sf)
 library(tmap)
 ```
 
 ```{r}
 ecoregions <- sf::st_read("/Users/danielsuh/Desktop/Terrestrial_Ecoregions/Terrestrial_Ecoregions.shp")
+realms <- read_sf("/Users/danielsuh/Desktop/zoogeographical_realms/newRealms.shp") #%>% st_make_valid()
 mamms <- sf::st_read("/Users/danielsuh/Desktop/iucn/MAMMALS_TERRESTRIAL_ONLY/MAMMALS_TERRESTRIAL_ONLY.shp")
 gmpd <- read_csv(here("data", "GMPD", "GMPD_main.csv"))
 ```
 
 ```{r}
 mamms %<>% st_transform(st_crs(ecoregions))
+realms %<>% st_transform(st_crs(ecoregions))
+
 ```
 
 
@@ -36,13 +40,15 @@ gmpd_hosts <- gmpd %>% filter(!is.na(Longitude)) %>% filter(HostEnvironment == "
 
 Get shapefiles for gmpd hosts
 ```{r}
-extant_names <- mamms %>% dplyr::select(legend) %>% distinct() %>% str_extract(., "Extant")
-mamms_gmpd <- mamms %>% filter(sci_name %in% gmpd_hosts$HostCorrectedName) %>% filter()
+extant_names <- mamms %>% st_drop_geometry() %>% dplyr::select(legend) %>% distinct() %>% filter(., grepl("Extant", legend)) 
+mamms_gmpd <- mamms %>% filter(sci_name %in% gmpd_hosts$HostCorrectedName) %>% filter(legend %in% extant_names$legend)
 ```
 
 
 ```{r}
 m_nigripes <- mamms_gmpd %>% filter(sci_name %in% c("Mustela nigripes"))
+m_nigripes_ecoregions <- st_intersection(ecoregions, m_nigripes) 
+m_nigripes_realm <- st_intersection(realms, m_nigripes) 
 
 ```
 
@@ -51,29 +57,44 @@ Need to fix this
 getting no intersections which doesn't make sense
 I'll subset data to known ecoregion overlaps and try to make that work first
 ```{r}
-m_nigripes %>% st_simplify() %>% tm_shape() + tm_borders()
-```
+m_nigripes_ecoregions %>% st_simplify() %>% tm_shape() + tm_borders()
 
-
-
-
-```{r}
-eco_head <- head(ecoregions)
+m_nigripes_realm %>% st_simplify() %>% tm_shape() + tm_borders()
 ```
 
 ```{r}
-sgbp <- st_intersects(x=ecoregions, y=mamms_gmpd, sparse=F)
+mamms_ecoregions <- st_intersection(ecoregions, mamms_gmpd)
+
+ecoregions_richness <- mamms_ecoregions %>% 
+  st_drop_geometry() %>% 
+  group_by(ECO_CODE) %>% 
+  summarize(FID = FID,
+            ECO_ID_U = ECO_ID_U,
+            ECO_NAME = ECO_NAME,
+            host_richness = n()) %>%
+  distinct()
 ```
-
-
-
 
 ```{r}
-ecoregions_host_richness <- mamms_gmpd %>% mutate(intersection=as.integer(st_intersects(geometry, ecoregions)),
-                                                  ecoRegion=if_else(is.na(intersection),'',ecoregions$ECO_NAME[intersection]))
+ecoregions_richness %>% ggplot(.,aes(x=host_richness)) + geom_histogram()
 ```
 
+This is just pure gmpd host richness by ecoregion. I need an ecoregion x gmpd host matrix
 
+```{r}
+host_pres_ecoreg <- mamms_ecoregions %>% 
+  st_drop_geometry() %>% #remove geom to make attribute manipulation much faster
+  dplyr::select(ECO_CODE, sci_name) %>% #just get ecoregions and host names
+  mutate(pres = 1) %>% #just a placeholder value to show that there was a presence
+  distinct() #sometimes there are duplicates because there were multiple polygons for one host for one ecoregion
+```
+
+This dataframe now includes each ecoregion where each host is present. Each row represents the presence of one host in one ecoregion. We need to turn this into a matrix.
+
+```{r}
+ecoreg_host_mat <- host_pres_ecoreg %>% pivot_wider(., names_from = ECO_CODE, values_from = pres) 
+ecoreg_host_mat %<>% replace(is.na(.), 0)
+```
 
 
 

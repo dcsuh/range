@@ -1,0 +1,30 @@
+---
+title: "gmpd_para_richness"
+output: html_document
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(here)
+library(tidyverse)
+library(magrittr)
+```
+
+
+```{r}
+gmpd <- read_csv(here("data", "GMPD", "GMPD_main.csv"))
+```
+
+```{r}
+gmpd_host_para <- gmpd %>% dplyr::select(HostCorrectedName, ParasiteCorrectedName) %>%
+  distinct() %>%
+  mutate(pres = 1)
+
+para_host_mat <- gmpd_host_para %>% pivot_wider(., names_from = HostCorrectedName, values_from = pres)
+```
+
+
