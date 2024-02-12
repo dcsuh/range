@@ -1,0 +1,53 @@
+---
+title: "ecoreg_para_richness"
+output: html_document
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(here)
+library(tidyverse)
+library(magrittr)
+
+
+library(sf)
+library(tmap)
+```
+
+```{r}
+ecoregions <- sf::st_read("/Users/danielsuh/Desktop/Terrestrial_Ecoregions/Terrestrial_Ecoregions.shp")
+gmpd <- read_csv(here("data", "GMPD", "GMPD_main.csv"))
+```
+
+```{r}
+gmpd %<>% drop_na(., Longitude, Latitude) %>% st_as_sf(., coords=c("Longitude", "Latitude"), crs = st_crs(ecoregions))
+```
+
+```{r}
+ecoregions %>% st_simplify() %>% tm_shape(.) + tm_borders()
+```
+
+
+```{r}
+tm_shape(gmpd) + tm_dots()
+```
+
+
+```{r}
+gmpd_ecoregions <- st_intersection(gmpd, ecoregions)
+```
+
+```{r}
+para_pres_ecoreg <- gmpd_ecoregions %>% 
+  st_drop_geometry() %>% #remove geom to make attribute manipulation much faster
+  dplyr::select(ECO_CODE, ParasiteCorrectedName) %>% #just get ecoregions and host names
+  mutate(pres = 1) %>% #just a placeholder value to show that there was a presence
+  distinct() #sometimes there are duplicates because there were multiple polygons for one host for one ecoregion
+```
+
+
+
