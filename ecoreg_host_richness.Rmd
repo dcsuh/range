@@ -11,8 +11,10 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(here)
 library(tidyverse)
+library(magrittr)
 
 library(sf)
+library(tmap)
 ```
 
 ```{r}
@@ -22,7 +24,7 @@ gmpd <- read_csv(here("data", "GMPD", "GMPD_main.csv"))
 ```
 
 ```{r}
-st_crs(mamms) <- st_crs(ecoregions)
+mamms %<>% st_transform(st_crs(ecoregions))
 ```
 
 
@@ -34,8 +36,25 @@ gmpd_hosts <- gmpd %>% filter(!is.na(Longitude)) %>% filter(HostEnvironment == "
 
 Get shapefiles for gmpd hosts
 ```{r}
-mamms_gmpd <- mamms %>% filter(sci_name %in% gmpd_hosts$HostCorrectedName)
+extant_names <- mamms %>% dplyr::select(legend) %>% distinct() %>% str_extract(., "Extant")
+mamms_gmpd <- mamms %>% filter(sci_name %in% gmpd_hosts$HostCorrectedName) %>% filter()
 ```
+
+
+```{r}
+m_nigripes <- mamms_gmpd %>% filter(sci_name %in% c("Mustela nigripes"))
+
+```
+
+
+Need to fix this
+getting no intersections which doesn't make sense
+I'll subset data to known ecoregion overlaps and try to make that work first
+```{r}
+m_nigripes %>% st_simplify() %>% tm_shape() + tm_borders()
+```
+
+
 
 
 ```{r}
@@ -53,6 +72,9 @@ sgbp <- st_intersects(x=ecoregions, y=mamms_gmpd, sparse=F)
 ecoregions_host_richness <- mamms_gmpd %>% mutate(intersection=as.integer(st_intersects(geometry, ecoregions)),
                                                   ecoRegion=if_else(is.na(intersection),'',ecoregions$ECO_NAME[intersection]))
 ```
+
+
+
 
 
 
