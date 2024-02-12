@@ -25,6 +25,13 @@ gmpd_host_para <- gmpd %>% dplyr::select(HostCorrectedName, ParasiteCorrectedNam
   mutate(pres = 1)
 
 para_host_mat <- gmpd_host_para %>% pivot_wider(., names_from = HostCorrectedName, values_from = pres)
+
+para_host_mat %<>% replace(is.na(.), 0)
 ```
+
+```{r}
+saveRDS(para_host_mat, file = here("data", "processed_data","para_mat.rds"))
+```
+
 
 

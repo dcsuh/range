@@ -1,0 +1,25 @@
+---
+title: "para_coverage"
+output: html_document
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(here)
+library(tidyverse)
+library(magrittr)
+```
+
+
+```{r}
+host_para_mat <- readRDS(here("data", "processed_data", "para_mat.rds"))
+ecoreg_host_mat <- readRDS(here("data", "processed_data", "ecoreg_mat.rds"))
+```
+
+
+

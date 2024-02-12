@@ -53,9 +53,6 @@ m_nigripes_realm <- st_intersection(realms, m_nigripes)
 ```
 
 
-Need to fix this
-getting no intersections which doesn't make sense
-I'll subset data to known ecoregion overlaps and try to make that work first
 ```{r}
 m_nigripes_ecoregions %>% st_simplify() %>% tm_shape() + tm_borders()
 
@@ -95,6 +92,11 @@ This dataframe now includes each ecoregion where each host is present. Each row 
 ecoreg_host_mat <- host_pres_ecoreg %>% pivot_wider(., names_from = ECO_CODE, values_from = pres) 
 ecoreg_host_mat %<>% replace(is.na(.), 0)
 ```
+
+```{r}
+saveRDS(ecoreg_host_mat, file = here("data", "processed_data", "ecoreg_mat.rds"))
+```
+
 
 
 
