@@ -45,6 +45,8 @@ for(i in 1:length(host_para_mat)){
     null_para_df %<>% rbind(final_para_pres)
   }
 }
+
+saveRDS(null_para_df, file = here("data", "processed_data", "null_para_df.rds"))
 ```
 
 
