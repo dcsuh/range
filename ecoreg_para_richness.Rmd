@@ -24,16 +24,21 @@ gmpd <- read_csv(here("data", "GMPD", "GMPD_main.csv"))
 ```
 
 ```{r}
-gmpd %<>% drop_na(., Longitude, Latitude) %>% st_as_sf(., coords=c("Longitude", "Latitude"), crs = st_crs(ecoregions))
+gmpd %<>% drop_na(., Longitude, Latitude) %>% st_as_sf(., coords=c("Longitude", "Latitude"), crs = "WGS84")
+ecoregions %<>% st_transform(crs="WGS84")
+
+sf_use_s2(FALSE)
 ```
 
 ```{r}
-ecoregions %>% st_simplify() %>% tm_shape(.) + tm_borders()
+head(ecoregions) %>% st_simplify() %>% tm_shape(.) + tm_borders()
 ```
 
 
 ```{r}
-tm_shape(gmpd) + tm_dots()
+tm_shape(gmpd, bbox=st_bbox(ecoregions)) + tm_dots() + 
+tm_shape(vulpes_pts) + tm_dots(aes(color = "red"))
+
 ```
 
 
@@ -48,6 +53,18 @@ para_pres_ecoreg <- gmpd_ecoregions %>%
   mutate(pres = 1) %>% #just a placeholder value to show that there was a presence
   distinct() #sometimes there are duplicates because there were multiple polygons for one host for one ecoregion
 ```
+
+```{r}
+ecoreg_para_mat <- para_pres_ecoreg %>% pivot_wider(., names_from = ECO_CODE, values_from = pres) 
+ecoreg_para_mat %<>% replace(is.na(.), 0)
+```
+
+```{r}
+saveRDS(ecoreg_para_mat, file = here("data", "processed_data", "ecoreg_para_mat.rds"))
+
+```
+
+
 
 
 
