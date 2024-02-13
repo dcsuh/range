@@ -27,22 +27,21 @@ Set probability of occupancy of a parasite in a host's ecoregion to some arbitra
 
 
 ```{r}
-host_names <- colnames(host_para_mat[2:463])
-ecoreg_names <- colnames(ecoreg_host_mat[2:717])
+host_names <- colnames(host_para_mat[2:ncol(host_para_mat)])
+ecoreg_names <- colnames(ecoreg_host_mat[2:ncol(ecoreg_host_mat)])
 
 null_proportion <- 0.5
 
 null_para_df <- tibble(sci_name=c(), para=c(), name=c(), value=c()) 
 
 for(i in 1:length(host_para_mat)){
-  parasite <- host_para_mat[i,1]
+  parasite <- as.character(host_para_mat[i,1])
   para_pres <- host_para_mat[i,]
   para_pres %<>% pivot_longer(all_of(host_names)) %>% filter(value==1)
-  host_pres <- ecoreg_host_mat %>% mutate(para=as.character(parasite), .after=sci_name) %>% filter(sci_name %in% c(para_pres$name))
+  host_pres <- ecoreg_host_mat %>% mutate(para=parasite, .after=sci_name) %>% filter(sci_name %in% c(para_pres$name))
   for(j in 1:length(host_pres)){
     para_ecoreg_pres <- host_pres[j,]
-    para_ecoreg_pres %<>% pivot_longer(all_of(ecoreg_names)) %>% filter(value==1)
-    final_para_pres <- para_ecoreg_pres %>% slice_sample(prop = null_proportion)
+    final_para_pres <- para_ecoreg_pres %>% pivot_longer(all_of(ecoreg_names)) %>% filter(value==1)
     null_para_df %<>% rbind(final_para_pres)
   }
 }
