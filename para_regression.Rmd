@@ -24,23 +24,36 @@ null_para_df <- readRDS(here("data", "processed_data", "null_para_df.rds"))
 
 
 ```{r}
-null_proportion = 0.05
+null_prop <- seq(0.05, 1, by = 0.05)
 ```
 
 
 
 ```{r}
-null_para_df %<>% group_by(sci_name, para) %>% slice_sample(prop = null_proportion) %>% ungroup()
+para_df_list <- list()
+for(i in 1:length(null_prop)){
+ para_df_list[[i]] <- null_para_df %>% 
+   group_by(sci_name, para) %>% 
+   slice_sample(prop = null_prop[i]) %>% 
+   ungroup()
+}
+
+names(para_df_list) <- null_prop
+
 ```
 
 
 
-```{r}
-null_para_mat <- null_para_df %>% 
+```{r, make mat}
+make_mat <- function(para_df){
+para_df %>% 
   dplyr::select(c(para, name, value)) %>% 
   distinct() %>% 
   pivot_wider(., names_from = name, values_from = value) %>%
   replace(is.na(.), 0)
+}
+
+para_mat_list <- lapply(para_df_list, make_mat)
 ```
 
 
@@ -49,24 +62,47 @@ Null regression
 100% coverage
 ```{r}
 host_rich <- colSums(ecoreg_host_mat[2:ncol(ecoreg_host_mat)])
-null_para_rich <- colSums(null_para_mat[2:ncol(null_para_mat)])
-para_rich <- colSums(ecoreg_para_mat[2:ncol(ecoreg_para_mat)])
+host_rich_df <- tibble(ecoreg = names(host_rich), host = host_rich)
 ```
 
 ```{r}
-tmp <- tibble(para = null_para_rich, ecoreg = names(null_para_rich))
+get_richness_df <- function(para_mat){
+  para_rich <- colSums(para_mat[2:ncol(para_mat)])
+  
+  tmp <- tibble(para = para_rich, ecoreg = names(para_rich))
+  
+  tmp %>% left_join(., host_rich_df) %>% replace(is.na(.), 0)
+}
+```
 
-null_rich_df <- tibble(ecoreg = names(host_rich), host = host_rich)
 
-null_rich_df %<>% left_join(., tmp)
+```{r}
+null_richness_list <- lapply(para_mat_list, get_richness_df)
+```
 
-null_rich_df %<>% replace(is.na(.), 0)
+
+
+```{r}
+get_lm <- function(df){
+  lm(para ~ host, df)
+}
+
+lm_list <- lapply(null_richness_list, get_lm)
 ```
 
 ```{r}
-null_rich_df %>% filter(para>0) %>% ggplot(.,aes(x=host, y=para)) + geom_point() + geom_smooth(method="lm")
+null_plots <- list()
+for(i in 1:length(null_richness_list)){
+  null_plots[[i]] <- null_richness_list[[i]] %>% ggplot(., aes(x=host, y=para)) + geom_point() + geom_smooth(method = "lm") + labs(title = names(null_richness_list[i])) + xlim(0,65) + ylim(0,270)
+}
+```
 
-summary(lm(para ~ host, data = null_rich_df))
+```{r}
+null_plots
+```
+
+```{r}
+lapply(lm_list, coef)
 ```
 
 
@@ -75,21 +111,12 @@ summary(lm(para ~ host, data = null_rich_df))
 Actual regression
 
 ```{r}
-host_rich <- colSums(ecoreg_host_mat[2:717])
+actual_para_rich <- get_richness_df(ecoreg_para_mat)
 ```
 
-```{r}
-tmp <- tibble(para = para_rich, ecoreg = names(para_rich))
-
-rich_df <- tibble(ecoreg = names(host_rich), host = host_rich)
-
-rich_df %<>% left_join(., tmp)
-
-rich_df %<>% replace(is.na(.), 0)
-```
 
 ```{r}
-rich_df %>% filter(para>0) %>% ggplot(.,aes(x=host, y=para)) + geom_point() + geom_smooth(method="lm")
+actual_para_rich %>% filter(para>0) %>% ggplot(.,aes(x=host, y=para)) + geom_point() + geom_smooth(method="lm")
 
-summary(lm(para ~ host, data = rich_df))
+summary(lm(para ~ host, data = actual_para_rich))
 ```
