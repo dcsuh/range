@@ -19,10 +19,61 @@ library(magrittr)
 ```{r}
 host_para_mat <- readRDS(here("data", "processed_data", "para_mat.rds"))
 ecoreg_host_mat <- readRDS(here("data", "processed_data", "ecoreg_mat.rds"))
+ecoreg_para_mat <- readRDS(here("data", "processed_data", "ecoreg_para_mat.rds"))
 ```
+
+Null regression
+Set probability of occupancy of a parasite in a host's ecoregion to some arbitrary number (0.5) and observe how this influences relationship between host richness and parasite richness at the ecoregion level. Then we compare this to the actual data.
 
 
 ```{r}
+host_names <- colnames(host_para_mat[2:463])
+ecoreg_names <- colnames(ecoreg_host_mat[2:717])
 
+null_proportion <- 0.5
+
+null_para_df <- tibble(sci_name=c(), para=c(), name=c(), value=c()) 
+
+for(i in 1:length(host_para_mat)){
+  parasite <- host_para_mat[i,1]
+  para_pres <- host_para_mat[i,]
+  para_pres %<>% pivot_longer(all_of(host_names)) %>% filter(value==1)
+  host_pres <- ecoreg_host_mat %>% mutate(para=as.character(parasite), .after=sci_name) %>% filter(sci_name %in% c(para_pres$name))
+  for(j in 1:length(host_pres)){
+    para_ecoreg_pres <- host_pres[j,]
+    para_ecoreg_pres %<>% pivot_longer(all_of(ecoreg_names)) %>% filter(value==1)
+    final_para_pres <- para_ecoreg_pres %>% slice_sample(prop = null_proportion)
+    null_para_df %<>% rbind(final_para_pres)
+  }
+}
 ```
+
+
+
+
+
+Actual regression
+
+```{r}
+host_rich <- colSums(ecoreg_host_mat[2:717])
+para_rich <- colSums(ecoreg_para_mat[2:379])
+```
+
+```{r}
+tmp <- tibble(para = para_rich, ecoreg = names(para_rich))
+
+rich_df <- tibble(ecoreg = names(host_rich), host = host_rich)
+
+rich_df %<>% left_join(., tmp)
+
+rich_df %<>% replace(is.na(.), 0)
+```
+
+```{r}
+rich_df %>% filter(para>0) %>% ggplot(.,aes(x=host, y=para)) + geom_point() + geom_smooth(method="lm")
+
+summary(lm(para ~ host, data = rich_df))
+```
+
+
 
