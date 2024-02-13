@@ -53,28 +53,4 @@ saveRDS(null_para_df, file = here("data", "processed_data", "null_para_df.rds"))
 
 
 
-Actual regression
-
-```{r}
-host_rich <- colSums(ecoreg_host_mat[2:717])
-para_rich <- colSums(ecoreg_para_mat[2:379])
-```
-
-```{r}
-tmp <- tibble(para = para_rich, ecoreg = names(para_rich))
-
-rich_df <- tibble(ecoreg = names(host_rich), host = host_rich)
-
-rich_df %<>% left_join(., tmp)
-
-rich_df %<>% replace(is.na(.), 0)
-```
-
-```{r}
-rich_df %>% filter(para>0) %>% ggplot(.,aes(x=host, y=para)) + geom_point() + geom_smooth(method="lm")
-
-summary(lm(para ~ host, data = rich_df))
-```
-
-
 
