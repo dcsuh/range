@@ -20,6 +20,7 @@ host_para_mat <- readRDS(here("data", "processed_data", "para_mat.rds"))
 ecoreg_host_mat <- readRDS(here("data", "processed_data", "ecoreg_mat.rds"))
 ecoreg_para_mat <- readRDS(here("data", "processed_data", "ecoreg_para_mat.rds"))
 null_para_df <- readRDS(here("data", "processed_data", "null_para_df.rds"))
+gmpd_ecoreg_effort <- readRDS(here("data", "processed_data", "gmpd_ecoreg_effort.rds"))
 ```
 
 

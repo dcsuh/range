@@ -35,12 +35,6 @@ head(ecoregions) %>% st_simplify() %>% tm_shape(.) + tm_borders()
 ```
 
 
-```{r}
-tm_shape(gmpd, bbox=st_bbox(ecoregions)) + tm_dots() + 
-tm_shape(vulpes_pts) + tm_dots(aes(color = "red"))
-
-```
-
 
 ```{r}
 gmpd_ecoregions <- st_intersection(gmpd, ecoregions)
@@ -59,9 +53,22 @@ ecoreg_para_mat <- para_pres_ecoreg %>% pivot_wider(., names_from = ECO_CODE, va
 ecoreg_para_mat %<>% replace(is.na(.), 0)
 ```
 
+
+Ecoregion study effort - how many gmpd studies per ecoregion
+```{r}
+gmpd_ecoreg_effort <- gmpd_ecoregions %>% 
+  st_drop_geometry() %>%
+  dplyr::select(Citation, ECO_ID_U) %>%
+  distinct() %>% 
+  group_by(ECO_ID_U) %>%
+  summarize(n = n())
+```
+
+
+
 ```{r}
 saveRDS(ecoreg_para_mat, file = here("data", "processed_data", "ecoreg_para_mat.rds"))
-
+saveRDS(gmpd_ecoreg_effort, file = here("data", "processed_data", "gmpd_ecoreg_effort.rds"))
 ```
 
 
