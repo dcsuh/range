@@ -22,27 +22,30 @@ ecoreg_host_mat <- readRDS(here("data", "processed_data", "ecoreg_mat.rds"))
 ecoreg_para_mat <- readRDS(here("data", "processed_data", "ecoreg_para_mat.rds"))
 ```
 
-Null regression
-Set probability of occupancy of a parasite in a host's ecoregion to some arbitrary number (0.5) and observe how this influences relationship between host richness and parasite richness at the ecoregion level. Then we compare this to the actual data.
+Using the host-parasite matrix and the host-ecoregion matrix, we can determine all of the possible ecoregions that a parsite might fill (assuming they fill all or a proportion of their host's ecoregions)
 
+This chunk generates a list with all host-parasite associations and all possible ecoregions where that might occur (because the host is present in that ecoregion)
 
 ```{r}
 host_names <- colnames(host_para_mat[2:ncol(host_para_mat)])
 ecoreg_names <- colnames(ecoreg_host_mat[2:ncol(ecoreg_host_mat)])
 
-null_proportion <- 0.5
 
 null_para_df <- tibble(sci_name=c(), para=c(), name=c(), value=c()) 
 
-for(i in 1:length(host_para_mat)){
-  parasite <- as.character(host_para_mat[i,1])
-  para_pres <- host_para_mat[i,]
-  para_pres %<>% pivot_longer(all_of(host_names)) %>% filter(value==1)
-  host_pres <- ecoreg_host_mat %>% mutate(para=parasite, .after=sci_name) %>% filter(sci_name %in% c(para_pres$name))
-  for(j in 1:length(host_pres)){
-    para_ecoreg_pres <- host_pres[j,]
-    final_para_pres <- para_ecoreg_pres %>% pivot_longer(all_of(ecoreg_names)) %>% filter(value==1)
-    null_para_df %<>% rbind(final_para_pres)
+for(i in 1:length(host_para_mat)){ #iterate over all host-parasite associations
+  parasite <- as.character(host_para_mat[i,1]) #declare parasite of interest
+  para_pres <- host_para_mat[i,] #get vector with all hosts associated with that parasite
+  para_pres %<>% pivot_longer(all_of(host_names)) %>% filter(value==1) #make into long format
+  host_pres <- ecoreg_host_mat %>% 
+    mutate(para=parasite, .after=sci_name) %>% #add parasite of interest's name as column for each host across all ecoregions
+    filter(sci_name %in% c(para_pres$name)) #only include host species that have known associations
+  for(j in 1:length(host_pres)){ #iterate over all of the hosts from the subsetted host-ecoreg mat we just made
+    para_ecoreg_pres <- host_pres[j,] #for each host species in matrix, get all of the ecoregions
+    final_para_pres <- para_ecoreg_pres %>% 
+      pivot_longer(all_of(ecoreg_names)) %>% #make data into long format so that each row is now the possible presence of a parasite in a host in an ecoregion
+      filter(value==1) #only keep rows where host is actually present
+    null_para_df %<>% rbind(final_para_pres) #add data to long format df where each row is a parasite-host-ecoregion association
   }
 }
 

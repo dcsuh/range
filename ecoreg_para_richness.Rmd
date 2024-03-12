@@ -58,9 +58,9 @@ Ecoregion study effort - how many gmpd studies per ecoregion
 ```{r}
 gmpd_ecoreg_effort <- gmpd_ecoregions %>% 
   st_drop_geometry() %>%
-  dplyr::select(Citation, ECO_ID_U) %>%
+  dplyr::select(Citation, ECO_CODE) %>%
   distinct() %>% 
-  group_by(ECO_ID_U) %>%
+  group_by(ECO_CODE) %>%
   summarize(n = n())
 ```
 

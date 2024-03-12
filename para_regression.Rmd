@@ -23,6 +23,9 @@ null_para_df <- readRDS(here("data", "processed_data", "null_para_df.rds"))
 gmpd_ecoreg_effort <- readRDS(here("data", "processed_data", "gmpd_ecoreg_effort.rds"))
 ```
 
+Null regression
+Set probability of occupancy of a parasite in a host's ecoregion to some arbitrary number (0.05-1) and observe how this influences relationship between host richness and parasite richness at the ecoregion level. Then we compare this to the actual data.
+
 
 ```{r}
 null_prop <- seq(0.05, 1, by = 0.05)
@@ -121,3 +124,43 @@ actual_para_rich %>% filter(para>0) %>% ggplot(.,aes(x=host, y=para)) + geom_poi
 
 summary(lm(para ~ host, data = actual_para_rich))
 ```
+
+
+Let's do this again but now assume that a parasite is more likely to be in an ecoregion if that ecoregion is also more well-studied
+
+First, we'll look at the distribution of ecoregion study effort (number of gmpd studies published per ecoregion)
+```{r}
+gmpd_ecoreg_effort %<>% rename(., name = ECO_CODE)
+
+
+gmpd_ecoreg_effort %>% group_by(n) %>% summarize(volume = n()) %>% ggplot(., aes(x=volume)) + geom_histogram(binwidth = 1)
+```
+
+So I can try to use this raw value in some way to assign a probability that a parasite is present in an ecoregion
+
+We can also use other methods such as rarefaction or Chao2 to determine actual presence.
+
+I'll start by trying to use the raw values in some way
+
+
+```{r}
+para_ecoreg_effort <- null_para_df %>% left_join(., gmpd_ecoreg_effort) 
+
+para_ecoreg_effort %<>% mutate(n = replace_na(n, 0))
+
+ecoreg_count <- para_ecoreg_effort %>% group_by(sci_name, para) %>% summarize(ecoreg_count = n()) %>% ungroup()
+
+para_ecoreg_effort %<>% left_join(., ecoreg_count)
+
+effort_weighted <- para_ecoreg_effort
+for(i in 1:length(para_ecoreg_effort)){
+  #rbind(para)
+}
+
+```
+
+
+
+
+
+
