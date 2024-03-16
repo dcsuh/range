@@ -152,10 +152,12 @@ ecoreg_count <- para_ecoreg_effort %>% group_by(sci_name, para) %>% summarize(ec
 
 para_ecoreg_effort %<>% left_join(., ecoreg_count)
 
-effort_weighted <- para_ecoreg_effort
-for(i in 1:length(para_ecoreg_effort)){
-  #rbind(para)
+effort_weighted <- tibble()
+for(i in 1:nrow(para_ecoreg_effort)){
+  n <- para_ecoreg_effort$n[i]
+  effort_weighted <- rbind(effort_weighted, para_ecoreg_effort[rep(i, n), ])
 }
+
 
 ```
 
