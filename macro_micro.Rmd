@@ -1,0 +1,71 @@
+---
+title: "macro_micro"
+output: html_document
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(here)
+library(tidyverse)
+library(magrittr)
+```
+
+
+Look at differences between macroparasite richness and microparasite richness per ecoregion
+
+Macroparasite may be more constrained by ecoregion because abiotic factors should play a larger role in their range because they sometimes have environmental life stages
+
+```{r}
+host_para_mat <- readRDS(here("data", "processed_data", "para_mat.rds"))
+ecoreg_host_mat <- readRDS(here("data", "processed_data", "ecoreg_mat.rds"))
+ecoreg_para_mat <- readRDS(here("data", "processed_data", "ecoreg_para_mat.rds"))
+null_para_df <- readRDS(here("data", "processed_data", "null_para_df.rds"))
+gmpd_ecoreg_effort <- readRDS(here("data", "processed_data", "gmpd_ecoreg_effort.rds"))
+
+gmpd <- read_csv(here("data", "GMPD", "GMPD_main.csv"))
+```
+
+```{r}
+gmpd_type <- gmpd %<>% dplyr::select(ParasiteCorrectedName, ParType) %>% distinct()
+
+par_type_index <- tibble(ParType = c("Virus", "Bacteria", "Protozoa", "Prion", "Fungus", "Helminth", "Arthropod"),
+                         ParMacroMicro = c("micro", "micro", "micro", "micro", "micro", "macro", "macro"))
+
+gmpd_type %<>% left_join(., par_type_index)
+
+gmpd_type %<>% rename(., para = ParasiteCorrectedName)
+```
+
+```{r}
+para_names <- null_para_df %>% dplyr::select(para) %>% distinct()
+gmpd_type %<>% filter(para %in% para_names$para)
+```
+
+There are some parasites called "not identified to genus" and these are different parasites so are creating issues when joining dataframes
+```{r}
+gmpd_type %<>% filter(!para == "not identified to genus")
+null_para_df %<>% filter(!para == "not identified to genus")
+
+```
+
+
+```{r}
+null_para_df %<>% left_join(., gmpd_type)
+```
+
+```{r}
+null_para_micro <- null_para_df %>% filter(ParMacroMicro == "micro")
+null_para_macro <- null_para_df %>% filter(ParMacroMicro == "macro")
+count(null_para_micro) + count(null_para_macro) == count(null_para_df) #test
+```
+
+
+```{r}
+
+```
+
+

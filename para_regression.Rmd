@@ -153,19 +153,20 @@ ecoreg_count <- para_ecoreg_effort %>% group_by(sci_name, para) %>% summarize(ec
 
 para_ecoreg_effort %<>% left_join(., ecoreg_count)
 
-para_ecoreg_effort %<>% mutate(n_times = n+1)
+para_ecoreg_effort %<>% mutate(n_times = ifelse(n==0, 1, n)) #turn 0's into 1's for replicate count
 
 effort_weighted <- para_ecoreg_effort %>% uncount(., n_times) #generate row per citation from ecoreg_count
 #uncount replicates row per number of times specified
 ```
 
+effort_weighted is a df where each parasite-host-ecoregion entry is duplicated according to the number of gmpd entries per ecoregion. We duplicate rows so that ecoregions with higher study effort are more likely to yield a presence in the null model because each row is subject to a bernoulli trial so more rows means more opportunities for successul trial (i.e., presence)
 ```{r}
 weighted_prop <- seq(0.01, 0.001, by=-0.0005)
 weighted_prop_list <- list()
 
 for(i in 1:length(weighted_prop)){
   weighted_prop_list[[i]] <- effort_weighted %>% 
-  mutate(included = rbinom(value,1, prob=weighted_prop[i])) %>% 
+  mutate(included = rbinom(value, 1, prob=weighted_prop[i])) %>% 
   filter(included==T) %>%
   distinct()
 }
@@ -203,6 +204,18 @@ actual_para_rich %>% filter(para>0) %>% ggplot(.,aes(x=host, y=para)) + geom_poi
 summary(lm(para ~ host, data = actual_para_rich))
 ```
 
+```{r}
+gmpd_ecoreg_effort %<>% rename(ecoreg = name)
+
+tmp <- left_join(actual_para_rich, gmpd_ecoreg_effort)
+
+ggplot(tmp, aes(x=n, y=para)) + geom_point() + geom_smooth(method="lm")
+
+
+summary(glm(para ~ n + host, family=poisson, data=tmp))
+```
+
+
 
 # Actual Regression Residuals
 
@@ -220,7 +233,12 @@ ecoreg_resids %<>% left_join(., gmpd_ecoreg_effort)
 
 Pretty good fit
 ```{r}
-ecoreg_resids %>% ggplot(., aes(x=n, y=resid)) + geom_point() + geom_smooth(method="lm")
+ecoreg_resids %>% ggplot(., aes(x=n, y=resid)) + 
+  geom_point() + 
+  geom_smooth(method="lm") + 
+  labs(title = "Residuals~Study Effort",
+       x = "number of studies per ecoregion",
+       y = "residual from PR~HR by ecoregion")
 
 summary(lm(resid ~ n, data=ecoreg_resids))
 ```
