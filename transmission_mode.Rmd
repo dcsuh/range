@@ -39,18 +39,20 @@ null_para_df %<>% left_join(., gmpd_traits)
 ```
 
 
-# start editing here. these logicals are not right
+Make df's for parasites with capacity for direct (close or nonclose) or indirect transmission (no capacity for close or nonclose)
 
 ```{r}
-null_para_direct <- null_para_df %>% filter(close == TRUE | nonclose == TRUE)
-null_para_indirect <- null_para_df %>% filter(vector == TRUE | intermediate == TRUE)
-count(null_para_direct) + count(null_para_indirect) == count(null_para_df) #test
-#check this but it is probably false because transmission mode data is not available for every parasite
+null_para_df %<>% mutate(mode = 
+                           ifelse(close == TRUE | nonclose == TRUE,
+                                  "direct",
+                                  "indirect")) %>%
+  filter(!is.na(mode)) #remove parasites without mode data
 
-sum(null_para_direct$vector) #should be 0
-sum(null_para_direct$intermediate) #should be 0
-sum(null_para_indirect$close) #should be 0
-sum(null_para_indirect$nonclose) #should be 0
+null_para_direct <- null_para_df %>% filter(mode == "direct") #hosts with capacity for close or nonclose transmission
+null_para_indirect <- null_para_df %>% filter(mode == "indirect") #hosts without capacity for close or nonclose transmission
+count(null_para_direct) + count(null_para_indirect) == count(null_para_df) #test
+
+
 ```
 
 ```{r, make mat}
@@ -92,9 +94,9 @@ gmpd_ecoreg_effort %<>% rename(., name = ECO_CODE)
 gmpd_ecoreg_effort %>% group_by(n) %>% summarize(volume = n()) %>% ggplot(., aes(x=volume)) + geom_histogram(binwidth = 1)
 ```
 
-do this for micro
+do this for direct
 ```{r}
-para_ecoreg_effort <- null_para_micro %>% left_join(., gmpd_ecoreg_effort) 
+para_ecoreg_effort <- null_para_direct %>% left_join(., gmpd_ecoreg_effort) 
 
 para_ecoreg_effort %<>% mutate(n = replace_na(n, 0))
 
@@ -104,13 +106,13 @@ para_ecoreg_effort %<>% left_join(., ecoreg_count)
 
 para_ecoreg_effort %<>% mutate(n_times = ifelse(n==0, 1, n)) #turn 0's into 1's for replicate count
 
-effort_weighted_micro <- para_ecoreg_effort %>% uncount(., n_times) #generate row per citation from ecoreg_count
+effort_weighted_direct <- para_ecoreg_effort %>% uncount(., n_times) #generate row per citation from ecoreg_count
 #uncount replicates row per number of times specified
 ```
 
-do this for macro
+do this for indirect
 ```{r}
-para_ecoreg_effort <- null_para_macro %>% left_join(., gmpd_ecoreg_effort) 
+para_ecoreg_effort <- null_para_indirect %>% left_join(., gmpd_ecoreg_effort) 
 
 para_ecoreg_effort %<>% mutate(n = replace_na(n, 0))
 
@@ -120,7 +122,7 @@ para_ecoreg_effort %<>% left_join(., ecoreg_count)
 
 para_ecoreg_effort %<>% mutate(n_times = ifelse(n==0, 1, n)) #turn 0's into 1's for replicate count
 
-effort_weighted_macro <- para_ecoreg_effort %>% uncount(., n_times) #generate row per citation from ecoreg_count
+effort_weighted_indirect <- para_ecoreg_effort %>% uncount(., n_times) #generate row per citation from ecoreg_count
 #uncount replicates row per number of times specified
 ```
 
@@ -140,18 +142,18 @@ make_list <- function(effort_weighted){
   return(weighted_prop_list)
 }
 
-weighted_prop_micro <- make_list(effort_weighted_micro)
-weighted_prop_macro <- make_list(effort_weighted_macro)
+weighted_prop_direct <- make_list(effort_weighted_direct)
+weighted_prop_indirect <- make_list(effort_weighted_indirect)
 
 
 ```
 
 ```{r}
-weighted_mat_list_micro <- lapply(weighted_prop_micro, make_mat)
-weighted_mat_list_macro <- lapply(weighted_prop_macro, make_mat)
+weighted_mat_list_direct <- lapply(weighted_prop_direct, make_mat)
+weighted_mat_list_indirect <- lapply(weighted_prop_indirect, make_mat)
 
-weighted_richness_micro <- lapply(weighted_mat_list_micro, get_richness_df)
-weighted_richness_macro <- lapply(weighted_mat_list_macro, get_richness_df)  
+weighted_richness_direct <- lapply(weighted_mat_list_direct, get_richness_df)
+weighted_richness_indirect <- lapply(weighted_mat_list_indirect, get_richness_df)  
 
 make_plots <- function(weighted_richness){
   weighted_plots <- list()
@@ -161,16 +163,16 @@ make_plots <- function(weighted_richness){
 return(weighted_plots)
 }
 
-weighted_plots_micro <- make_plots(weighted_richness_micro)
-weighted_plots_macro <- make_plots(weighted_richness_macro)
+weighted_plots_direct <- make_plots(weighted_richness_direct)
+weighted_plots_indirect <- make_plots(weighted_richness_indirect)
 ```
 
 ```{r}
-weighted_plots_micro
+weighted_plots_direct
 ```
 
 ```{r}
-weighted_plots_macro
+weighted_plots_indirect
 ```
 
 ```{r}
@@ -181,17 +183,17 @@ get_lm <- function(df){
 
 
 ```{r}
-weighted_lm_micro <- lapply(weighted_richness_micro, get_lm)
-weighted_lm_macro <- lapply(weighted_richness_macro, get_lm)
+weighted_lm_direct <- lapply(weighted_richness_direct, get_lm)
+weighted_lm_indirect <- lapply(weighted_richness_indirect, get_lm)
 ```
 
 
 ```{r}
-lapply(weighted_lm_micro, coef)
+lapply(weighted_lm_direct, coef)
 ```
 
 ```{r}
-lapply(weighted_lm_macro, coef)
+lapply(weighted_lm_indirect, coef)
 ```
 
 
@@ -199,33 +201,40 @@ lapply(weighted_lm_macro, coef)
 
 
 ```{r}
-gmpd_type %<>% rename(ParasiteCorrectedName=para)
-ecoreg_para_type <- left_join(ecoreg_para_mat, gmpd_type)
+gmpd_traits %<>% rename(ParasiteCorrectedName = para)
+ecoreg_para_mode <- left_join(ecoreg_para_mat, gmpd_traits)
 
-ecoreg_para_mat_micro <- ecoreg_para_type %>% 
-  filter(ParMacroMicro=="micro") %>% 
-  dplyr::select(-c(ParType, ParMacroMicro))
+ecoreg_para_mode %<>% mutate(mode = 
+                           ifelse(close == TRUE | nonclose == TRUE,
+                                  "direct",
+                                  "indirect")) %>%
+  filter(!is.na(mode)) #remove parasites without mode data
 
-ecoreg_para_mat_macro <- ecoreg_para_type %>% 
-  filter(ParMacroMicro=="macro") %>% 
-  dplyr::select(-c(ParType, ParMacroMicro))
 
-actual_para_rich_micro <- get_richness_df(ecoreg_para_mat_micro)
-actual_para_rich_macro <- get_richness_df(ecoreg_para_mat_macro)
+ecoreg_para_mat_direct <- ecoreg_para_mode %>% 
+  filter(mode=="direct") %>% 
+  dplyr::select(-c(close:mode))
+
+ecoreg_para_mat_indirect <- ecoreg_para_mode %>% 
+  filter(mode=="indirect") %>% 
+  dplyr::select(-c(close:mode))
+
+actual_para_rich_direct <- get_richness_df(ecoreg_para_mat_direct)
+actual_para_rich_indirect <- get_richness_df(ecoreg_para_mat_indirect)
 ```
 
 
 
 
 ```{r}
-actual_para_rich_micro %>% filter(para>0) %>% ggplot(.,aes(x=host, y=para)) + geom_point() + geom_smooth(method="lm") + labs(title = "GMPD microparasites")
+actual_para_rich_direct %>% filter(para>0) %>% ggplot(.,aes(x=host, y=para)) + geom_point() + geom_smooth(method="lm") + labs(title = "GMPD direct parasites")
 
-summary(lm(para ~ host, data = actual_para_rich_micro))
+summary(lm(para ~ host, data = actual_para_rich_direct))
 ```
 
 ```{r}
-actual_para_rich_macro %>% filter(para>0) %>% ggplot(.,aes(x=host, y=para)) + geom_point() + geom_smooth(method="lm") + labs(title = "GMPD macroparasites")
+actual_para_rich_indirect %>% filter(para>0) %>% ggplot(.,aes(x=host, y=para)) + geom_point() + geom_smooth(method="lm") + labs(title = "GMPD indirect parasites")
 
-summary(lm(para ~ host, data = actual_para_rich_macro))
+summary(lm(para ~ host, data = actual_para_rich_indirect))
 ```
 
