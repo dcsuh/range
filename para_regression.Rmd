@@ -227,7 +227,6 @@ Is it due to ecoregion study effort?
 actual_lm <- lm(para ~ host, data = actual_para_rich)
 ecoreg_resids <- actual_para_rich %>% mutate(resid=resid(actual_lm))
 
-ecoreg_resids %<>% rename(name = ecoreg)
 ecoreg_resids %<>% left_join(., gmpd_ecoreg_effort)
 ```
 
