@@ -12,6 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(here)
 library(tidyverse)
 library(magrittr)
+library(janitor)
 ```
 
 what are the proportions of ecoregions filled by a parasite given it's host range
@@ -24,10 +25,12 @@ null_para_df <- readRDS(here("data", "processed_data", "null_para_df.rds"))
 gmpd_ecoreg_effort <- readRDS(here("data", "processed_data", "gmpd_ecoreg_effort.rds"))
 
 gmpd <- read_csv(here("data", "GMPD", "GMPD_main.csv"))
+gmpd_traits <- read_csv(here("data", "GMPD", "GMPD_parasite_traits.csv"))
+
 ```
-Add column for parasite type
+# Add column for parasite type
 ```{r}
-gmpd_type <- gmpd %<>% dplyr::select(ParasiteCorrectedName, ParType) %>% distinct()
+gmpd_type <- gmpd %>% dplyr::select(ParasiteCorrectedName, ParType) %>% distinct()
 
 par_type_index <- tibble(ParType = c("Virus", "Bacteria", "Protozoa", "Prion", "Fungus", "Helminth", "Arthropod"),
                          ParMacroMicro = c("micro", "micro", "micro", "micro", "micro", "macro", "macro"))
@@ -54,19 +57,122 @@ null_para_df %<>% filter(!para == "not identified to genus")
 null_para_df %<>% left_join(., gmpd_type)
 ```
 
-Add column for transmission mode
+# Add column for transmission mode
+```{r}
+gmpd_traits %<>% mutate(mode = 
+                           ifelse(close == TRUE | nonclose == TRUE,
+                                  "direct",
+                                  "indirect")) %>%
+  filter(!is.na(mode)) #remove parasites without mode data
+
+gmpd_traits %<>% rename(para=ParasiteCorrectedName) %>% dplyr::select(para, mode)
+```
+
+
+```{r}
+null_para_df %<>% left_join(., gmpd_traits)
+```
+
+
+
+# Add column for host specificity
+```{r}
+load(file=here("data", "GMPD", "get_nri.Rda"))
+nri %<>% rownames_to_column(., var = "para")
+
+nri %<>% 
+  filter(!is.na(mpd.obs.z)) %>%
+  mutate(spec_bin = ifelse(
+    mpd.obs.z<median(mpd.obs.z), #class determined above or below median
+    "specialist",
+    "generalist"
+  ))
+
+tabyl(nri$spec_bin)
+
+nri %<>% dplyr::select(para, spec_bin)
+
+null_para_df %<>% left_join(., nri)
+```
+
+
+# Add column for prevalence
+```{r}
+gmpd_prev <- gmpd %>% 
+  dplyr::select(ParasiteCorrectedName, Prevalence) %>%
+  filter(!is.na(Prevalence)) %>%
+  group_by(ParasiteCorrectedName) %>%
+  summarize(Prevalence=mean(Prevalence)) %>% #get average prevalence
+  mutate(prev_bin = ifelse(
+    Prevalence > median(Prevalence), #above or below median
+    "high_prevalence",
+    "low_prevalence"
+  ))
+
+tabyl(gmpd_prev$prev_bin)
+
+gmpd_prev %<>% rename(para = ParasiteCorrectedName) %>% dplyr::select(para, prev_bin)
+
+null_para_df %<>% left_join(., gmpd_prev)
+```
+
+
+
+# Add column for intensity
+```{r}
+gmpd_int <- gmpd %>%
+  dplyr::select(ParasiteCorrectedName, Intensity) %>%
+  mutate(Intensity = as.numeric(Intensity)) %>% #some intensity measures included characters to indicate exponent or range. these are removed for now
+  filter(!is.na(Intensity)) %>%
+  filter(Intensity>0) %>% #some intensity measures were 0. these were removed
+  group_by(ParasiteCorrectedName) %>%
+  summarize(Intensity = mean(Intensity)) %>% #get average intensity
+  mutate(int_bin = ifelse(
+    Intensity > median(Intensity), #above or below median
+    "high_intensity",
+    "low_intensity"
+  ))
+
+tabyl(gmpd_int$int_bin)
+
+gmpd_int %<>% rename(para = ParasiteCorrectedName) %>% dplyr::select(para, int_bin)
+
+null_para_df %<>% left_join(., gmpd_int)
+```
+
+
+# plotting function
+
+
+
+
+
+# macro micro
+
 ```{r}
 
 ```
 
 
-Add column for host specificity
+# transmission mode
 
 
-Add column for prevalence
 
 
-Add column for intensity
+# specialism
+
+
+
+
+# prevalence
+
+
+
+
+# intensity
+
+
+
 
 
 
