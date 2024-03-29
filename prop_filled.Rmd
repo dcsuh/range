@@ -228,11 +228,11 @@ prev_ratios <- get_ratios(ecoreg_para_mat_vars, "prev_bin")
 int_ratios <- get_ratios(ecoreg_para_mat_vars, "int_bin")
 
 
-type_ratios %>% filter(ratio<1 & ratio>0) %>% ggplot(., aes(x=binary, y=ratio)) + geom_boxplot()
-mode_ratios %>% filter(ratio<1 & ratio>0) %>% ggplot(., aes(x=binary, y=ratio)) + geom_boxplot()
-spec_ratios %>% filter(ratio<1 & ratio>0) %>% ggplot(., aes(x=binary, y=ratio)) + geom_boxplot()
-prev_ratios %>% filter(ratio<1 & ratio>0) %>% ggplot(., aes(x=binary, y=ratio)) + geom_boxplot()
-int_ratios %>% filter(ratio<1 & ratio>0) %>% ggplot(., aes(x=binary, y=ratio)) + geom_boxplot()
+type_ratios %>% filter(ratio<1 & ratio>0) %>% ggplot(., aes(x=binary, y=ratio)) + geom_boxplot() + geom_jitter()
+mode_ratios %>% filter(ratio<1 & ratio>0) %>% ggplot(., aes(x=binary, y=ratio)) + geom_boxplot() + geom_jitter()
+spec_ratios %>% filter(ratio<1 & ratio>0) %>% ggplot(., aes(x=binary, y=ratio)) + geom_boxplot() + geom_jitter()
+prev_ratios %>% filter(ratio<1 & ratio>0) %>% ggplot(., aes(x=binary, y=ratio)) + geom_boxplot() + geom_jitter()
+int_ratios %>% filter(ratio<1 & ratio>0) %>% ggplot(., aes(x=binary, y=ratio)) + geom_boxplot() + geom_jitter()
 ```
 
 
