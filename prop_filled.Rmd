@@ -15,6 +15,16 @@ library(magrittr)
 library(janitor)
 ```
 
+
+# Notes
+
+Why are there positive ratios when we are dividing observed in GMPD over max possible richness per ecoregion?
+ - Already tried to restrict data to those in native range but this doesn't fix it
+    - may need to ensure that parasite presence is only counted in GMPD if it is within host IUCN range
+
+
+
+
 what are the proportions of ecoregions filled by a parasite given it's host range
 break it down by (1) parasite type, (2) transmission mode, (3) host specificity, (4) high vs. low prevalence, (5) high vs. low intensity
 ```{r}
@@ -28,6 +38,12 @@ gmpd <- read_csv(here("data", "GMPD", "GMPD_main.csv"))
 gmpd_traits <- read_csv(here("data", "GMPD", "GMPD_parasite_traits.csv"))
 
 ```
+```{r}
+gmpd %<>% filter(NativeRange=="Yes")
+#gmpd %<>% filter(NativeRange!="No" | is.na(NativeRange))
+```
+
+
 # Add column for parasite type
 ```{r}
 gmpd_type <- gmpd %>% dplyr::select(ParasiteCorrectedName, ParType) %>% distinct()
@@ -235,6 +251,24 @@ mode_ratios %>% filter(ratio<1) %>% ggplot(., aes(x=binary, y=ratio)) + geom_box
 spec_ratios %>% filter(ratio<1) %>% ggplot(., aes(x=binary, y=ratio)) + geom_boxplot() + geom_jitter()
 prev_ratios %>% filter(ratio<1) %>% ggplot(., aes(x=binary, y=ratio)) + geom_boxplot() + geom_jitter()
 int_ratios %>% filter(ratio<1) %>% ggplot(., aes(x=binary, y=ratio)) + geom_boxplot() + geom_jitter()
+```
+```{r}
+type_ratios %>% filter(ratio<1) %>% ggplot(., aes(x=binary, y=ratio)) + geom_violin()
+mode_ratios %>% filter(ratio<1) %>% ggplot(., aes(x=binary, y=ratio)) + geom_violin()
+spec_ratios %>% filter(ratio<1) %>% ggplot(., aes(x=binary, y=ratio)) + geom_violin()
+prev_ratios %>% filter(ratio<1) %>% ggplot(., aes(x=binary, y=ratio)) + geom_violin()
+int_ratios %>% filter(ratio<1) %>% ggplot(., aes(x=binary, y=ratio)) + geom_violin()
+
+```
+
+
+
+```{r}
+wilcox.test(ratio ~ binary, data = type_ratios)
+wilcox.test(ratio ~ binary, data = mode_ratios)
+wilcox.test(ratio ~ binary, data = spec_ratios)
+wilcox.test(ratio ~ binary, data = prev_ratios)
+wilcox.test(ratio ~ binary, data = int_ratios)
 ```
 
 
