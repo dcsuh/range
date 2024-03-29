@@ -23,6 +23,7 @@ Why are there positive ratios when we are dividing observed in GMPD over max pos
     - may need to ensure that parasite presence is only counted in GMPD if it is within host IUCN range
     - how often does parasite presence in ecoregion per host IUCN data actually match up with gmpd data?
        - I should be able to do this using geoms
+ - Try a paired test since data are paired by ecoregion?
 
 
 
@@ -275,76 +276,6 @@ wilcox.test(ratio ~ binary, data = int_ratios)
 
 
 
-
-# macro micro
-
-First, get max richness
-
-```{r}
-macro_rich <- null_para_df %>% filter(ParMacroMicro == "macro") %>% make_mat(.) %>% get_richness_df(.) 
-micro_rich <- null_para_df %>% filter(ParMacroMicro == "micro") %>% make_mat(.) %>% get_richness_df(.) 
-```
-
-Next, get actual richness
-
-```{r}
-actual_para_macro <- ecoreg_para_mat_vars %>% filter(ParMacroMicro == "macro") %>%
-  dplyr::select(-group_vars) %>% get_richness_df(.)
-actual_para_micro <- ecoreg_para_mat_vars %>% filter(ParMacroMicro == "micro") %>%
-  dplyr::select(-group_vars) %>% get_richness_df(.)
-```
-
-Join and get ratio
-
-```{r}
-macro_rich %<>% left_join(., actual_para_macro, by=c("ecoreg", "host")) %>% mutate(type = "macro")
-micro_rich %<>% left_join(., actual_para_micro, by=c("ecoreg", "host")) %>% mutate(type = "micro")
-
-para_type_rich <- rbind(macro_rich, micro_rich)
-
-para_type_rich %<>% mutate(ratio = para.y/para.x) %>% filter(!is.na(ratio))
-
-para_type_rich %>% filter(ratio<1 & ratio>0) %>% ggplot(., aes(x=type, y=ratio)) + geom_boxplot()
-```
-
-
-
-# transmission mode
-
-
-
-
-# specialism
-
-
-
-
-# prevalence
-
-
-
-
-# intensity
-
-
-
-
-
-
-```{r}
-para_ecoregs <- null_para_df %>% group_by(para) %>% distinct() %>% summarize(tot_ecoreg = n())
-```
-
-```{r}
-gmpd_para_ecoreg <- ecoreg_para_mat %>% 
-  pivot_longer(cols=2:379) %>% 
-  filter(value==1) %>%
-  group_by(ParasiteCorrectedName) %>%
-  distinct() %>%
-  summarize(filled_ecoreg = n()) %>%
-  rename(para = ParasiteCorrectedName)
-  
-```
 
 
 
