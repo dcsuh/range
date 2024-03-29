@@ -139,6 +139,36 @@ gmpd_int %<>% rename(para = ParasiteCorrectedName) %>% dplyr::select(para, int_b
 
 null_para_df %<>% left_join(., gmpd_int)
 ```
+# proportion filled function
+
+```{r}
+get_richness_df <- function(para_mat){
+  para_rich <- colSums(para_mat[2:ncol(para_mat)])
+  
+  tmp <- tibble(para = para_rich, ecoreg = names(para_rich))
+  
+  tmp %>% left_join(., host_rich_df) %>% replace(is.na(.), 0)
+}
+```
+
+```{r}
+host_rich <- colSums(ecoreg_host_mat[2:ncol(ecoreg_host_mat)])
+host_rich_df <- tibble(ecoreg = names(host_rich), host = host_rich)
+```
+
+```{r}
+actual_para_rich <- get_richness_df(ecoreg_para_mat)
+```
+
+```{r}
+make_mat <- function(para_df){
+para_df %>% 
+  dplyr::select(c(para, name, value)) %>% 
+  distinct() %>% 
+  pivot_wider(., names_from = name, values_from = value) %>%
+  replace(is.na(.), 0)
+}
+```
 
 
 # plotting function
@@ -147,11 +177,98 @@ null_para_df %<>% left_join(., gmpd_int)
 
 
 
-# macro micro
+# actual ecoreg para mat with more attributes
 
 ```{r}
+ecoreg_para_mat_vars <- ecoreg_para_mat %>% rename(para = ParasiteCorrectedName) %>% 
+  left_join(., gmpd_type) %>%
+  left_join(., gmpd_traits) %>%
+  left_join(., nri) %>%
+  left_join(., gmpd_prev) %>%
+  left_join(., gmpd_int)
 
+group_vars <- c("ParType", "ParMacroMicro", "mode", "spec_bin", "prev_bin", "int_bin")
 ```
+
+
+
+```{r}
+get_ratios <- function(data, VarName){
+
+vars <- data %>% dplyr::select(VarName) %>% distinct() %>% filter(!is.na(.))
+  
+  
+actual_para_first <- ecoreg_para_mat_vars %>% filter(!!sym(VarName) == vars[[1,1]]) %>%
+  dplyr::select(-group_vars) %>% get_richness_df(.)
+actual_para_second <- ecoreg_para_mat_vars %>% filter(!!sym(VarName) == vars[[2,1]]) %>%
+  dplyr::select(-group_vars) %>% get_richness_df(.)
+
+max_rich_first <- null_para_df %>% filter(!!sym(VarName) == vars[[1,1]]) %>% make_mat(.) %>% get_richness_df(.) 
+max_rich_second <- null_para_df %>% filter(!!sym(VarName) == vars[[2,1]]) %>% make_mat(.) %>% get_richness_df(.) 
+
+
+
+max_rich_first %<>% left_join(., actual_para_first, by=c("ecoreg", "host")) %>% mutate(binary = vars[[1,1]])
+max_rich_second %<>% left_join(., actual_para_second, by=c("ecoreg", "host")) %>% mutate(binary = vars[[2,1]])
+
+para_binary_rich <- rbind(max_rich_first, max_rich_second)
+
+para_binary_rich %<>% mutate(ratio = para.y/para.x) %>% filter(!is.na(ratio))
+
+return(para_binary_rich)
+}
+```
+
+
+```{r}
+type_ratios <- get_ratios(ecoreg_para_mat_vars, "ParMacroMicro")
+mode_ratios <- get_ratios(ecoreg_para_mat_vars, "mode")
+spec_ratios <- get_ratios(ecoreg_para_mat_vars, "spec_bin")
+prev_ratios <- get_ratios(ecoreg_para_mat_vars, "prev_bin")
+int_ratios <- get_ratios(ecoreg_para_mat_vars, "int_bin")
+
+
+type_ratios %>% filter(ratio<1 & ratio>0) %>% ggplot(., aes(x=binary, y=ratio)) + geom_boxplot()
+mode_ratios %>% filter(ratio<1 & ratio>0) %>% ggplot(., aes(x=binary, y=ratio)) + geom_boxplot()
+spec_ratios %>% filter(ratio<1 & ratio>0) %>% ggplot(., aes(x=binary, y=ratio)) + geom_boxplot()
+prev_ratios %>% filter(ratio<1 & ratio>0) %>% ggplot(., aes(x=binary, y=ratio)) + geom_boxplot()
+int_ratios %>% filter(ratio<1 & ratio>0) %>% ggplot(., aes(x=binary, y=ratio)) + geom_boxplot()
+```
+
+
+
+
+# macro micro
+
+First, get max richness
+
+```{r}
+macro_rich <- null_para_df %>% filter(ParMacroMicro == "macro") %>% make_mat(.) %>% get_richness_df(.) 
+micro_rich <- null_para_df %>% filter(ParMacroMicro == "micro") %>% make_mat(.) %>% get_richness_df(.) 
+```
+
+Next, get actual richness
+
+```{r}
+actual_para_macro <- ecoreg_para_mat_vars %>% filter(ParMacroMicro == "macro") %>%
+  dplyr::select(-group_vars) %>% get_richness_df(.)
+actual_para_micro <- ecoreg_para_mat_vars %>% filter(ParMacroMicro == "micro") %>%
+  dplyr::select(-group_vars) %>% get_richness_df(.)
+```
+
+Join and get ratio
+
+```{r}
+macro_rich %<>% left_join(., actual_para_macro, by=c("ecoreg", "host")) %>% mutate(type = "macro")
+micro_rich %<>% left_join(., actual_para_micro, by=c("ecoreg", "host")) %>% mutate(type = "micro")
+
+para_type_rich <- rbind(macro_rich, micro_rich)
+
+para_type_rich %<>% mutate(ratio = para.y/para.x) %>% filter(!is.na(ratio))
+
+para_type_rich %>% filter(ratio<1 & ratio>0) %>% ggplot(., aes(x=type, y=ratio)) + geom_boxplot()
+```
+
 
 
 # transmission mode
