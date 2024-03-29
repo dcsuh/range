@@ -15,7 +15,7 @@ library(magrittr)
 ```
 
 what are the proportions of ecoregions filled by a parasite given it's host range
-break it down by parasite type
+break it down by (1) parasite type, (2) transmission mode, (3) host specificity, (4) high vs. low prevalence, (5) high vs. low intensity
 ```{r}
 host_para_mat <- readRDS(here("data", "processed_data", "para_mat.rds"))
 ecoreg_host_mat <- readRDS(here("data", "processed_data", "ecoreg_mat.rds"))
@@ -25,7 +25,7 @@ gmpd_ecoreg_effort <- readRDS(here("data", "processed_data", "gmpd_ecoreg_effort
 
 gmpd <- read_csv(here("data", "GMPD", "GMPD_main.csv"))
 ```
-
+Add column for parasite type
 ```{r}
 gmpd_type <- gmpd %<>% dplyr::select(ParasiteCorrectedName, ParType) %>% distinct()
 
@@ -53,6 +53,22 @@ null_para_df %<>% filter(!para == "not identified to genus")
 ```{r}
 null_para_df %<>% left_join(., gmpd_type)
 ```
+
+Add column for transmission mode
+```{r}
+
+```
+
+
+Add column for host specificity
+
+
+Add column for prevalence
+
+
+Add column for intensity
+
+
 
 ```{r}
 para_ecoregs <- null_para_df %>% group_by(para) %>% distinct() %>% summarize(tot_ecoreg = n())
