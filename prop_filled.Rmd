@@ -21,6 +21,8 @@ library(janitor)
 Why are there positive ratios when we are dividing observed in GMPD over max possible richness per ecoregion?
  - Already tried to restrict data to those in native range but this doesn't fix it
     - may need to ensure that parasite presence is only counted in GMPD if it is within host IUCN range
+    - how often does parasite presence in ecoregion per host IUCN data actually match up with gmpd data?
+       - I should be able to do this using geoms
 
 
 
