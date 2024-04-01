@@ -24,6 +24,8 @@ Why are there positive ratios when we are dividing observed in GMPD over max pos
     - how often does parasite presence in ecoregion per host IUCN data actually match up with gmpd data?
        - I should be able to do this using geoms
  - Try a paired test since data are paired by ecoregion?
+ 
+ Do this again but for the proportion of ecoregions a parasite actually fills over the number it could fill. Currently this is for actual richness/theoretical richness
 
 
 
