@@ -284,6 +284,34 @@ wilcox.test(ratio ~ binary, data = int_ratios)
 ```
 
 
+Do this once more but for all of the parasites and all of the ecoregions without subsetting to the different binary groups.
+
+Then see if there are any patterns when we break those groups up by traits.
+
+Max ecoreg filled per parasite
+```{r}
+max_ecoreg <- null_para_df %>% 
+  group_by(para) %>% 
+  dplyr::select(para, name) %>% 
+  distinct() %>% 
+  summarize(max_ecoreg = n())
+```
+
+```{r}
+actual_ecoreg <- ecoreg_para_mat_vars %>% 
+    dplyr::select(-group_vars) %>%
+    pivot_longer(all_of(ecoreg_names)) %>%
+    filter(value == TRUE) %>%
+    group_by(para) %>%
+    distinct() %>%
+    summarize(n_ecoreg = n())
+```
+
+```{r}
+ecoreg_filled <- left_join(max_ecoreg, actual_ecoreg, by = "para")
+```
+
+
 
 
 

@@ -309,14 +309,32 @@ paired_prev %>% filter(ratio.x < 1 & ratio.y < 1) %>% ggplot(., aes(x=ratio.x, y
 paired_int %>% filter(ratio.x < 1 & ratio.y < 1) %>% ggplot(., aes(x=ratio.x, y=ratio.y)) + geom_point() + geom_abline(intercept=0)
 ```
 
-
+two-tailed
 ```{r}
 wilcox.test(paired_type$ratio.x, paired_type$ratio.y, paired=TRUE)
 wilcox.test(paired_mode$ratio.x, paired_mode$ratio.y, paired=TRUE)
 wilcox.test(paired_spec$ratio.x, paired_spec$ratio.y, paired=TRUE)
 wilcox.test(paired_prev$ratio.x, paired_prev$ratio.y, paired=TRUE)
 wilcox.test(paired_int$ratio.x, paired_int$ratio.y, paired=TRUE)
+```
 
+
+one-tailed
+```{r}
+#Is prop filled by micro (x) greater than macro (y)?
+wilcox.test(paired_type$ratio.x, paired_type$ratio.y, paired=TRUE, alternative = "greater")
+
+#Is prop filled by direct (x) less than indirect (y)?
+wilcox.test(paired_mode$ratio.x, paired_mode$ratio.y, paired=TRUE, alternative = "less")
+
+#Is prop filled by specialist (x) greater than generalist (y)?
+wilcox.test(paired_spec$ratio.x, paired_spec$ratio.y, paired=TRUE, alternative = "greater")
+
+#Is prop filled by low prevalence (x) less than high prevalence (y)?
+wilcox.test(paired_prev$ratio.x, paired_prev$ratio.y, paired=TRUE, alternative = "less")
+
+#Is prop filled by high intensity (x) less than low intensity (y)?
+wilcox.test(paired_int$ratio.x, paired_int$ratio.y, paired=TRUE, alternative = "less")
 ```
 
 
