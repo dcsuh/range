@@ -357,7 +357,7 @@ paired_int %>% filter(ratio.x < 1 & ratio.y < 1) %>%
 
 paired, non-parametric, two-tailed
 ```{r}
-wilcox.test(paired_type$ratio.x, paired_type$ratio.y, paired=TRUE)
+mod <- wilcox.test(paired_type$ratio.x, paired_type$ratio.y, paired=TRUE)
 wilcox.test(paired_mode$ratio.x, paired_mode$ratio.y, paired=TRUE)
 wilcox.test(paired_spec$ratio.x, paired_spec$ratio.y, paired=TRUE)
 wilcox.test(paired_prev$ratio.x, paired_prev$ratio.y, paired=TRUE)

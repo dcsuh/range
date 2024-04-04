@@ -51,7 +51,7 @@ ecoreg_names <- colnames(ecoreg_para_mat[2:ncol(ecoreg_para_mat)])
 ```
 
 ```{r}
-gmpd %<>% filter(NativeRange=="Yes")
+gmpd %<>% filter(NativeRange!="No")
 #gmpd %<>% filter(NativeRange!="No" | is.na(NativeRange))
 ```
 
@@ -332,19 +332,19 @@ ecoreg_filled %<>% filter(!is.na(ratio))
 
 ```{r}
 ecoreg_filled %>% filter(!is.na(ParMacroMicro)) %>%
-  ggplot(., aes(x=ParMacroMicro, y=ratio)) + geom_boxplot()
+  ggplot(., aes(x=ParMacroMicro, y=ratio)) + geom_violin()
 
 ecoreg_filled %>% filter(!is.na(mode)) %>%
-  ggplot(., aes(x=mode, y=ratio)) + geom_boxplot()
+  ggplot(., aes(x=mode, y=ratio)) + geom_violin()
 
 ecoreg_filled %>% filter(!is.na(spec_bin)) %>%
-  ggplot(., aes(x=spec_bin, y=ratio)) + geom_boxplot()
+  ggplot(., aes(x=spec_bin, y=ratio)) + geom_violin()
 
 ecoreg_filled %>% filter(!is.na(prev_bin)) %>%
-  ggplot(., aes(x=prev_bin, y=ratio)) + geom_boxplot()
+  ggplot(., aes(x=prev_bin, y=ratio)) + geom_violin()
 
 ecoreg_filled %>% filter(!is.na(int_bin)) %>%
-  ggplot(., aes(x=int_bin, y=ratio)) + geom_boxplot()
+  ggplot(., aes(x=int_bin, y=ratio)) + geom_violin()
 ```
 
 ```{r}
