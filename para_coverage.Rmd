@@ -22,7 +22,7 @@ ecoreg_host_mat <- readRDS(here("data", "processed_data", "ecoreg_mat.rds"))
 ecoreg_para_mat <- readRDS(here("data", "processed_data", "ecoreg_para_mat.rds"))
 ```
 
-Using the host-parasite matrix and the host-ecoregion matrix, we can determine all of the possible ecoregions that a parsite might fill (assuming they fill all or a proportion of their host's ecoregions)
+Using the host-parasite matrix and the host-ecoregion matrix, we can determine all of the possible ecoregions that a parasite might fill (assuming they fill all or a proportion of their host's ecoregions)
 
 This chunk generates a list with all host-parasite associations and all possible ecoregions where that might occur (because the host is present in that ecoregion)
 

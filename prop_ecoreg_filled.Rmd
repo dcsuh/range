@@ -23,15 +23,19 @@ Why are there positive ratios when we are dividing observed in GMPD over max pos
     - may need to ensure that parasite presence is only counted in GMPD if it is within host IUCN range
     - how often does parasite presence in ecoregion per host IUCN data actually match up with gmpd data?
        - I should be able to do this using geoms
- - Try a paired test since data are paired by ecoregion?
- 
- Do this again but for the proportion of ecoregions a parasite actually fills over the number it could fill. Currently this is for actual richness/theoretical richness
 
 
+# Summary
+
+What is the actual number of ecoregions a parasite is found in compared to the maximum number of ecoregions a parasite could inhabit across different parasite groupings: (1) parasite type, (2) transmission mode, (3) host specificity, (4) high vs. low prevalence, (5) high vs. low intensity?
+
+Overall method: 
+Create two evenly sized groups divided by some feature of the parasite
+Measure actual number of ecoregions a parasite is found in from GMPD
+Measure maximum number of ecoregions a parasite could be found in assuming full host filling
+Compare ratio of actual:maximum for all parasites across feature
 
 
-what are the proportions of ecoregions filled by a parasite given it's host range
-break it down by (1) parasite type, (2) transmission mode, (3) host specificity, (4) high vs. low prevalence, (5) high vs. low intensity
 ```{r}
 host_para_mat <- readRDS(here("data", "processed_data", "para_mat.rds"))
 ecoreg_host_mat <- readRDS(here("data", "processed_data", "ecoreg_mat.rds"))
@@ -83,18 +87,18 @@ null_para_df %<>% left_join(., gmpd_type)
 
 # Add column for transmission mode
 ```{r}
-gmpd_traits %<>% mutate(mode = 
+gmpd_mode <- gmpd_traits %>% mutate(mode = 
                            ifelse(close == TRUE | nonclose == TRUE,
                                   "direct",
                                   "indirect")) %>%
   filter(!is.na(mode)) #remove parasites without mode data
 
-gmpd_traits %<>% rename(para=ParasiteCorrectedName) %>% dplyr::select(para, mode)
+gmpd_mode %<>% rename(para=ParasiteCorrectedName) %>% dplyr::select(para, mode)
 ```
 
 
 ```{r}
-null_para_df %<>% left_join(., gmpd_traits)
+null_para_df %<>% left_join(., gmpd_mode)
 ```
 
 
@@ -174,7 +178,7 @@ null_para_df %<>% left_join(., gmpd_int)
 ```{r}
 ecoreg_para_mat_vars <- ecoreg_para_mat %>% rename(para = ParasiteCorrectedName) %>% 
   left_join(., gmpd_type) %>%
-  left_join(., gmpd_traits) %>%
+  left_join(., gmpd_mode) %>%
   left_join(., nri) %>%
   left_join(., gmpd_prev) %>%
   left_join(., gmpd_int)
@@ -274,7 +278,7 @@ int_ratios %>% filter(ratio<1) %>% ggplot(., aes(x=binary, y=ratio)) + geom_viol
 ```
 
 
-
+two-tailed, non-parametric
 ```{r}
 wilcox.test(ratio ~ binary, data = type_ratios)
 wilcox.test(ratio ~ binary, data = mode_ratios)
@@ -308,8 +312,51 @@ actual_ecoreg <- ecoreg_para_mat_vars %>%
 ```
 
 ```{r}
-ecoreg_filled <- left_join(max_ecoreg, actual_ecoreg, by = "para")
+ecoreg_binary <- null_para_df %>%
+  group_by(para) %>%
+  dplyr::select(para, ParMacroMicro:int_bin) %>%
+  distinct()
 ```
+
+
+```{r}
+ecoreg_filled <- left_join(max_ecoreg, actual_ecoreg, by = "para")
+ecoreg_filled %<>% left_join(., ecoreg_binary, by = "para")
+ecoreg_filled %<>% mutate(ratio = n_ecoreg/max_ecoreg)
+```
+
+```{r}
+ecoreg_filled %<>% filter(!is.na(ratio))
+```
+
+
+```{r}
+ecoreg_filled %>% filter(!is.na(ParMacroMicro)) %>%
+  ggplot(., aes(x=ParMacroMicro, y=ratio)) + geom_boxplot()
+
+ecoreg_filled %>% filter(!is.na(mode)) %>%
+  ggplot(., aes(x=mode, y=ratio)) + geom_boxplot()
+
+ecoreg_filled %>% filter(!is.na(spec_bin)) %>%
+  ggplot(., aes(x=spec_bin, y=ratio)) + geom_boxplot()
+
+ecoreg_filled %>% filter(!is.na(prev_bin)) %>%
+  ggplot(., aes(x=prev_bin, y=ratio)) + geom_boxplot()
+
+ecoreg_filled %>% filter(!is.na(int_bin)) %>%
+  ggplot(., aes(x=int_bin, y=ratio)) + geom_boxplot()
+```
+
+```{r}
+wilcox.test(ratio ~ ParMacroMicro, data = ecoreg_filled)
+wilcox.test(ratio ~ mode, data = ecoreg_filled)
+wilcox.test(ratio ~ spec_bin, data = ecoreg_filled)
+wilcox.test(ratio ~ prev_bin, data = ecoreg_filled)
+wilcox.test(ratio ~ int_bin, data = ecoreg_filled)
+```
+
+
+
 
 
 

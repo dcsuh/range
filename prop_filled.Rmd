@@ -23,15 +23,21 @@ Why are there positive ratios when we are dividing observed in GMPD over max pos
     - may need to ensure that parasite presence is only counted in GMPD if it is within host IUCN range
     - how often does parasite presence in ecoregion per host IUCN data actually match up with gmpd data?
        - I should be able to do this using geoms
- - Try a paired test since data are paired by ecoregion?
- 
- Do this again but for the proportion of ecoregions a parasite actually fills over the number it could fill. Currently this is for actual richness/theoretical richness
 
 
 
 
-what are the proportions of ecoregions filled by a parasite given it's host range
-break it down by (1) parasite type, (2) transmission mode, (3) host specificity, (4) high vs. low prevalence, (5) high vs. low intensity
+# Summary
+
+What is the actual PSR per ecoregion compared to the maximum PSR per ecoregion across different parasite groupings: (1) parasite type, (2) transmission mode, (3) host specificity, (4) high vs. low prevalence, (5) high vs. low intensity?
+
+Overall method: 
+Create two evenly sized groups divided by some feature of the parasite
+Measure actual PSR per ecoregion for each group
+Measure maximum PSR per ecoregion assuming full host filling
+Compare ratio of actual:maximum for all ecoregions across feature
+
+
 ```{r}
 host_para_mat <- readRDS(here("data", "processed_data", "para_mat.rds"))
 ecoreg_host_mat <- readRDS(here("data", "processed_data", "ecoreg_mat.rds"))
@@ -267,6 +273,7 @@ int_ratios %>% filter(ratio<1) %>% ggplot(., aes(x=binary, y=ratio)) + geom_viol
 ```
 
 
+non-parametric, two-tailed test
 
 ```{r}
 wilcox.test(ratio ~ binary, data = type_ratios %>% filter(ratio<1))
@@ -301,15 +308,54 @@ paired_prev <- get_pairs(prev_ratios)
 paired_int <- get_pairs(int_ratios)
 ```
 
+
+Each point is an ecoregion and the values correspond to the proportion of max PSR each ecoregion has when broken down into either grouping from a parasite feature.
+
 ```{r}
-paired_type %>% filter(ratio.x < 1 & ratio.y < 1) %>% ggplot(., aes(x=ratio.x, y=ratio.y)) + geom_point() + geom_abline(intercept=0)
-paired_mode %>% filter(ratio.x < 1 & ratio.y < 1) %>% ggplot(., aes(x=ratio.x, y=ratio.y)) + geom_point() + geom_abline(intercept=0)
-paired_spec %>% filter(ratio.x < 1 & ratio.y < 1) %>% ggplot(., aes(x=ratio.x, y=ratio.y)) + geom_point() + geom_abline(intercept=0)
-paired_prev %>% filter(ratio.x < 1 & ratio.y < 1) %>% ggplot(., aes(x=ratio.x, y=ratio.y)) + geom_point() + geom_abline(intercept=0)
-paired_int %>% filter(ratio.x < 1 & ratio.y < 1) %>% ggplot(., aes(x=ratio.x, y=ratio.y)) + geom_point() + geom_abline(intercept=0)
+paired_type %>% filter(ratio.x < 1 & ratio.y < 1) %>% 
+  ggplot(., aes(x=ratio.x, y=ratio.y)) + 
+  geom_point() + 
+  geom_abline(intercept=0) + 
+  labs(title = "macro vs. micro",
+       x = "micro",
+       y = "macro")
+
+paired_mode %>% filter(ratio.x < 1 & ratio.y < 1) %>% 
+  ggplot(., aes(x=ratio.x, y=ratio.y)) + 
+  geom_point() + 
+  geom_abline(intercept=0) + 
+  labs(title = "direct vs. indirect",
+       x = "direct",
+       y = "indirect")
+
+paired_spec %>% filter(ratio.x < 1 & ratio.y < 1) %>% 
+  ggplot(., aes(x=ratio.x, y=ratio.y)) + 
+  geom_point() + 
+  geom_abline(intercept=0) + 
+  labs(title = "specialist vs. generalist",
+       x = "specialist",
+       y = "generalist")
+
+paired_prev %>% filter(ratio.x < 1 & ratio.y < 1) %>% 
+  ggplot(., aes(x=ratio.x, y=ratio.y)) + 
+  geom_point() + 
+  geom_abline(intercept=0) + 
+  labs(title = "low prev vs. high prev",
+       x = "low prev",
+       y = "high prev")
+
+paired_int %>% filter(ratio.x < 1 & ratio.y < 1) %>% 
+  ggplot(., aes(x=ratio.x, y=ratio.y)) + 
+  geom_point() + 
+  geom_abline(intercept=0) + 
+  labs(title = "high int vs. low int",
+       x = "high int",
+       y = "low int")
 ```
 
-two-tailed
+
+
+paired, non-parametric, two-tailed
 ```{r}
 wilcox.test(paired_type$ratio.x, paired_type$ratio.y, paired=TRUE)
 wilcox.test(paired_mode$ratio.x, paired_mode$ratio.y, paired=TRUE)
@@ -319,7 +365,7 @@ wilcox.test(paired_int$ratio.x, paired_int$ratio.y, paired=TRUE)
 ```
 
 
-one-tailed
+paired, non-parametric, one-tailed
 ```{r}
 #Is prop filled by micro (x) greater than macro (y)?
 wilcox.test(paired_type$ratio.x, paired_type$ratio.y, paired=TRUE, alternative = "greater")
