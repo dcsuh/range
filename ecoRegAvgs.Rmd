@@ -1,0 +1,93 @@
+---
+title: "Extract data for World Clim"
+author: "Andrew W. Park"
+date: "2023-09-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=F}
+library(here)
+base::library(magrittr)
+base::library(tidyverse)
+base::library(raster)
+base::library(sf)
+base::library(exactextractr)
+base::library(terra)
+```
+
+extracting bioclim data (WorldClim data has a scale factor of 10, so Temp = -37 is -3.7 ºC.)
+
+```{r, warning=FALSE}
+r <- raster::getData('worldclim',var='bio',res=10)
+
+gmpd_ecoreg_psr <- readRDS(here("data", "processed_data", "gmpd_ecoreg_psr.rds"))
+```
+
+
+Worldclim metadata found here ---> https://www.worldclim.org/data/bioclim.html
+
+
+Let's make sure the units and CRS agree for our raster and vector data
+
+```{r}
+# i don't think we'll have this data on github - sorry about the personal path
+ecoReg <- sf::st_read("/Users/danielsuh/Desktop/Terrestrial_Ecoregions/Terrestrial_Ecoregions.shp")
+
+# the exactextract function recommends this conversion for accuracy when extracting from raster stack
+r2 <- terra::rast(r)
+
+ecoReg <- st_transform(ecoReg, st_crs(r2)) #results are same even when I don't change the CRS this way
+```
+
+
+
+
+```{r}
+ecocodes <- gmpd_ecoreg_psr$ecoreg
+
+ecoreg_pos <- ecoReg %<>% dplyr::filter(ECO_CODE %in% ecocodes)
+
+# this will ultimately be the ecoregions with malavi data - here just 2 as an example
+# e1 <- "Alaska Range"
+# e2 <- "Central Asian Northern Desert"
+# x <- ecoReg %<>% dplyr::filter(ECO_NAME %in% c(e1,e2))
+
+
+
+# probably a clever way to do this (map functions in modelr package?) but this method is not terrible
+ecoreg_extract <- exactextractr::exact_extract(r2, ecoreg_pos$geometry[1]) #grabs world clim data for ecoregion - returned as list
+ecoreg_extract <- ecoreg_extract[[1]] #from list to df - note 'coverage_fraction' is how much of raster cell falls within shape
+n_missing <- sum(is.na(ecoreg_extract$bio1))
+total_area <- sum(y$coverage_fraction)
+worldclim_mean <- ecoreg_extract %>% summarize(across(1:19, ~weighted.mean(., w = coverage_fraction, na.rm=T))) #mean for all 19 worldclim vars weighted by coverage_fraction
+worldclim_mean %<>% mutate(ecoregion=x$ECO_CODE[1], # add name of ecoregion
+              na = n_missing, # number of rows with missing data
+              area_km2 = total_area) # area of ecoregion (should check units)
+
+for (i in 2:dim(x)[1]){ # same as step above but looped over the remaining 2:n ecoregions
+  ecoreg_extract <- exactextractr::exact_extract(r2,ecoreg_pos$geometry[i])
+  ecoreg_extract <- ecoreg_extract[[1]]
+  n_missing <- sum(is.na(ecoreg_extract$bio1))
+  total_area <- sum(ecoreg_extract$coverage_fraction)
+  worldclim_mean_tmp <- ecoreg_extract %>% summarize(across(1:19, ~weighted.mean(., w = coverage_fraction, na.rm=T)))
+  worldclim_mean_tmp %<>% mutate(ecoregion=ecoreg_pos$ECO_CODE[i],
+                na = n_missing,
+                area_km2 = total_area)
+  worldclim_mean %<>% add_case(worldclim_mean_tmp) #adds new ecoregion to the original y so y keeps growing and ends up as one df with all ecoregs and all 19 bioclim vars averaged
+}
+
+saveRDS(worldclim_mean, file = here("data", "processed_data", "worldclim_mean.rds"))
+```
+
+The above method calculates the percent of a raster that overlaps with a vector. It then takes a weighted average based off that proportion.
+I think this works but my intuition would be to find the rasters that fall within a vector and then just average over those rasters.
+I guess this method would overweight rasters on the border though because they are only partially overlapping the vector.
+```{r}
+# rast_cropped <- crop(r2, x$geometry[1])
+```
+
+

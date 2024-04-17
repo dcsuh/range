@@ -116,6 +116,8 @@ Actual regression
 
 ```{r}
 actual_para_rich <- get_richness_df(ecoreg_para_mat)
+
+saveRDS(actual_para_rich, file = here("data", "processed_data", "gmpd_ecoreg_psr.rds"))
 ```
 
 
