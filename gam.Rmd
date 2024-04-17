@@ -8,10 +8,28 @@ date: "`r Sys.Date()`"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r, message = F}
 library(here)
 library(tidyverse)
 library(magrittr)
 library(mgcv)
 ```
+
+```{r}
+gmpd_ecoreg_psr <- readRDS(here("data", "processed_data", "gmpd_ecoreg_psr.rds"))
+
+worldclim_mean <- readRDS(here("data", "processed_data", "worldclim_mean.rds"))
+```
+
+
+```{r}
+dat <- left_join(gmpd_ecoreg_psr, worldclim_mean, by="ecoreg")
+```
+
+```{r}
+m1 <- gam(para ~ host + s(bio1) + s(bio2) + s(bio4) + s(bio12) + s(bio15) + area_km2, data = dat)
+```
+
+
+
 
