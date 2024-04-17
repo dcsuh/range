@@ -19,16 +19,41 @@ library(mgcv)
 gmpd_ecoreg_psr <- readRDS(here("data", "processed_data", "gmpd_ecoreg_psr.rds"))
 
 worldclim_mean <- readRDS(here("data", "processed_data", "worldclim_mean.rds"))
+
+prop_max_rich <- readRDS(here("data", "processed_data", "ratios", "prop_max_rich_ecoreg.rds"))
 ```
 
 
 ```{r}
 dat <- left_join(gmpd_ecoreg_psr, worldclim_mean, by="ecoreg")
+dat %<>% left_join(., prop_max_rich, by = c("ecoreg", "host"))
 ```
 
 ```{r}
 m1 <- gam(para ~ host + s(bio1) + s(bio2) + s(bio4) + s(bio12) + s(bio15) + area_km2, data = dat)
+
+dat %>% ggplot(., aes(x=host, y=para)) + geom_point() + geom_smooth(method = "lm")
+dat %>% ggplot(., aes(x=log(area_km2), y=para)) + geom_point() + geom_smooth(method = "lm")
 ```
+
+```{r}
+m2 <- gam(ratio ~ host + s(bio1) + s(bio2) + s(bio4) + s(bio12) + s(bio15) + area_km2, data = dat)
+
+dat %>% ggplot(., aes(x=host, y=ratio)) + geom_point() + geom_smooth(method = "lm")
+dat %>% ggplot(., aes(x=log(area_km2), y=ratio)) + geom_point() + geom_smooth(method = "lm")
+```
+
+
+
+```{r}
+m3 <- gam(para.x ~ host + s(bio1) + s(bio2) + s(bio4) + s(bio12) + s(bio15) + area_km2, data = dat)
+
+dat %>% ggplot(., aes(x=host, y=para.x)) + geom_point() + geom_smooth(method = "lm")
+dat %>% ggplot(., aes(x=log(area_km2), y=para.x)) + geom_point() + geom_smooth(method = "lm")
+```
+
+
+
 
 
 

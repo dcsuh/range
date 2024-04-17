@@ -218,6 +218,19 @@ group_vars <- c("ParType", "ParMacroMicro", "mode", "spec_bin", "prev_bin", "int
 ```
 
 
+```{r}
+
+max_rich <- null_para_df %>% make_mat() %>% get_richness_df() 
+
+max_rich %<>% left_join(., actual_para_rich, by=c("ecoreg", "host"))
+
+prop_rich <- max_rich %>% mutate(para.y = replace_na(para.y, 0),
+                                 ratio = para.y/para.x)
+
+saveRDS(prop_rich, file = here("data", "processed_data", "ratios", "prop_max_rich_ecoreg.rds"))
+```
+
+
 
 ```{r}
 get_ratios <- function(data, VarName){
@@ -240,7 +253,8 @@ max_rich_second %<>% left_join(., actual_para_second, by=c("ecoreg", "host")) %>
 
 para_binary_rich <- rbind(max_rich_first, max_rich_second)
 
-para_binary_rich %<>% mutate(ratio = para.y/para.x) %>% filter(!is.na(ratio))
+para_binary_rich %<>% mutate(para.y = replace_na(para.y, 0),
+                             ratio = para.y/para.x)
 
 return(para_binary_rich)
 }
@@ -253,6 +267,12 @@ mode_ratios <- get_ratios(ecoreg_para_mat_vars, "mode")
 spec_ratios <- get_ratios(ecoreg_para_mat_vars, "spec_bin")
 prev_ratios <- get_ratios(ecoreg_para_mat_vars, "prev_bin")
 int_ratios <- get_ratios(ecoreg_para_mat_vars, "int_bin")
+
+saveRDS(type_ratios, file = here("data", "processed_data", "ratios", "prop_type_rich_ecoreg.rds"))
+saveRDS(mode_ratios, file = here("data", "processed_data", "ratios", "prop_mode_rich_ecoreg.rds"))
+saveRDS(spec_ratios, file = here("data", "processed_data", "ratios", "prop_spec_rich_ecoreg.rds"))
+saveRDS(prev_ratios, file = here("data", "processed_data", "ratios", "prop_prev_rich_ecoreg.rds"))
+saveRDS(int_ratios, file = here("data", "processed_data", "ratios", "prop_int_rich_ecoreg.rds"))
 ```
 
 
@@ -357,7 +377,7 @@ paired_int %>% filter(ratio.x < 1 & ratio.y < 1) %>%
 
 paired, non-parametric, two-tailed
 ```{r}
-mod <- wilcox.test(paired_type$ratio.x, paired_type$ratio.y, paired=TRUE)
+wilcox.test(paired_type$ratio.x, paired_type$ratio.y, paired=TRUE)
 wilcox.test(paired_mode$ratio.x, paired_mode$ratio.y, paired=TRUE)
 wilcox.test(paired_spec$ratio.x, paired_spec$ratio.y, paired=TRUE)
 wilcox.test(paired_prev$ratio.x, paired_prev$ratio.y, paired=TRUE)
