@@ -50,6 +50,7 @@ m3 <- gam(para.x ~ host + s(bio1) + s(bio2) + s(bio4) + s(bio12) + s(bio15) + ar
 
 dat %>% ggplot(., aes(x=host, y=para.x)) + geom_point() + geom_smooth(method = "lm")
 dat %>% ggplot(., aes(x=log(area_km2), y=para.x)) + geom_point() + geom_smooth(method = "lm")
+
 ```
 
 
