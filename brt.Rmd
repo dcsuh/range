@@ -1,0 +1,56 @@
+---
+title: "brt"
+output: html_document
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message = F}
+library(here)
+library(tidyverse)
+library(magrittr)
+
+source(here("elith_tutorial", "brt.functions.R"))
+```
+
+```{r}
+gmpd_ecoreg_psr <- readRDS(here("data", "processed_data", "gmpd_ecoreg_psr.rds"))
+
+worldclim_mean <- readRDS(here("data", "processed_data", "worldclim_mean.rds"))
+
+prop_max_rich <- readRDS(here("data", "processed_data", "ratios", "prop_max_rich_ecoreg.rds"))
+
+gmpd_ecoreg_effort <- readRDS(here("data", "processed_data", "gmpd_ecoreg_effort.rds"))
+```
+
+```{r}
+gmpd_ecoreg_effort %<>% rename(effort=n,
+                               ecoreg=ECO_CODE)
+```
+
+```{r}
+gmpd_ecoreg_psr %<>% left_join(., gmpd_ecoreg_effort)
+gmpd_ecoreg_psr %<>% left_join(., worldclim_mean, by="ecoreg")
+
+gmpd_ecoreg_psr %<>% dplyr::select(-c(na))
+
+
+```
+
+```{r}
+brt <- gbm.step(data = as.data.frame(gmpd_ecoreg_psr), 
+                gbm.x = 3:ncol(gmpd_ecoreg_psr), 
+                gbm.y = 1, 
+                family = "poisson", 
+                tree.complexity = 5, 
+                learning.rate = 0.004, 
+                bag.fraction = 0.5)
+```
+
+```{r}
+summary(brt)
+```
+
