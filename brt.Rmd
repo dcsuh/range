@@ -82,4 +82,120 @@ brt_ratio <- gbm.step(as.data.frame(prop_max_rich),
               bag.fraction = 0.5)
 ```
 
+#try another way
+
+Is the parasite present in an ecoreg?
+ - worldclim variables
+ - parasite classifications
+ - number of viable hosts in that ecoreg
+ 
+ - each row is one parasite in on ecoregion and whether or not they are present
+
+host_para_mat is all of the host-parasite associations from gmpd
+ecoreg_host_mat is all of the host presences in ecoregions
+
+ecoreg_para_mat is every parasite's actual ecoregion presence as estimated by host_para_mat and ecoreg_host_mat
+null_para_df is every parasite's possible presence in an ecoregion due to host presence
+
+```{r}
+host_para_mat <- readRDS(here("data", "processed_data", "para_mat.rds"))
+ecoreg_host_mat <- readRDS(here("data", "processed_data", "ecoreg_mat.rds"))
+ecoreg_para_mat <- readRDS(here("data", "processed_data", "ecoreg_para_mat.rds"))
+null_para_df <- readRDS(here("data", "processed_data", "null_para_df.rds"))
+```
+
+```{r}
+ecoreg_names <- colnames(ecoreg_para_mat[2:ncol(ecoreg_para_mat)])
+ecoreg_para_long <- ecoreg_para_mat %>% 
+  pivot_longer(cols = all_of(ecoreg_names)) %>%
+  filter(value==1) %>%
+  rename(pres = value,
+         para = ParasiteCorrectedName)
+```
+
+ecoreg_para_long is every ecoregion where the parasite is actually present
+
+```{r}
+pres_abs_df <- null_para_df %>% 
+  left_join(., ecoreg_para_long, by = c("para", "name")) %>%
+  mutate(pres = replace_na(pres, 0))
+
+hosts_available <- pres_abs_df %>% 
+  dplyr::select(sci_name, para, name) %>% 
+  group_by(para, name) %>% 
+  summarize(avail_hosts = n())
+
+pres_abs_df %<>% dplyr::select(para, name, pres) %>% distinct()
+
+pres_abs_df %<>% left_join(., hosts_available)
+```
+
+```{r}
+pres_abs_df %<>% rename(ecoreg = name)
+pres_abs_df %<>% left_join(., worldclim_mean, by="ecoreg")
+pres_abs_df %<>% left_join(., gmpd_ecoreg_effort, by="ecoreg")
+```
+
+```{r}
+pres_abs_df %<>% drop_na() %>% dplyr::select(-c(na))
+```
+
+```{r}
+train <- sample(1:nrow(pres_abs_df), nrow(pres_abs_df) * 0.8)
+test <- pres_abs_df %>% mutate(row_num = rownames(.)) %>% filter(!row_num %in% train) %>% dplyr::select(row_num)
+test <- as.integer(test$row_num)
+
+pres_abs_df_train <- pres_abs_df[train, ]
+pres_abs_df_test <- pres_abs_df[test, ]
+```
+
+
+```{r}
+brt1 <- gbm.step(as.data.frame(pres_abs_df), 
+              gbm.x = c(4:ncol(pres_abs_df)), 
+              gbm.y = 3, 
+              family = "bernoulli", 
+              tree.complexity = 4, 
+              learning.rate = 0.01, 
+              bag.fraction = 0.5)
+
+brt2 <- gbm.step(as.data.frame(pres_abs_df), 
+              gbm.x = c(5:(ncol(pres_abs_df)-1)), 
+              gbm.y = 3, 
+              family = "bernoulli", 
+              tree.complexity = 4, 
+              learning.rate = 0.01, 
+              bag.fraction = 0.5)
+
+brt3 <- gbm.step(as.data.frame(pres_abs_df_train), 
+              gbm.x = c(4:ncol(pres_abs_df_train)), 
+              gbm.y = 3, 
+              family = "bernoulli", 
+              tree.complexity = 4, 
+              learning.rate = 0.01, 
+              bag.fraction = 0.5)
+```
+
+```{r}
+summary(brt1)
+summary(brt2)
+```
+
+```{r}
+gbm.plot(brt1, n.plots=6, plot.layout=c(2, 3), write.title = FALSE, common.scale = T, main = )
+```
+
+```{r}
+gbm.plot(brt1)
+```
+
+
+
+
+
+
+
+
+
+
 

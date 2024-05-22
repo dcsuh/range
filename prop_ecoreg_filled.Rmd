@@ -13,6 +13,7 @@ library(here)
 library(tidyverse)
 library(magrittr)
 library(janitor)
+library(patchwork)
 ```
 
 
@@ -89,8 +90,8 @@ null_para_df %<>% left_join(., gmpd_type)
 ```{r}
 gmpd_mode <- gmpd_traits %>% mutate(mode = 
                            ifelse(close == TRUE | nonclose == TRUE,
-                                  "direct",
-                                  "indirect")) %>%
+                                  "simple",
+                                  "complex")) %>%
   filter(!is.na(mode)) #remove parasites without mode data
 
 gmpd_mode %<>% rename(para=ParasiteCorrectedName) %>% dplyr::select(para, mode)
@@ -269,12 +270,22 @@ int_ratios %>% filter(ratio<1) %>% ggplot(., aes(x=binary, y=ratio)) + geom_boxp
 ```
 
 ```{r}
-type_ratios %>% filter(ratio<1) %>% ggplot(., aes(x=binary, y=ratio)) + geom_violin()
-mode_ratios %>% filter(ratio<1) %>% ggplot(., aes(x=binary, y=ratio)) + geom_violin()
-spec_ratios %>% filter(ratio<1) %>% ggplot(., aes(x=binary, y=ratio)) + geom_violin()
-prev_ratios %>% filter(ratio<1) %>% ggplot(., aes(x=binary, y=ratio)) + geom_violin()
-int_ratios %>% filter(ratio<1) %>% ggplot(., aes(x=binary, y=ratio)) + geom_violin()
+get_violin <- function(df){
+  df %>% 
+    filter(ratio<1) %>% 
+    ggplot(., aes(x=binary, y=ratio)) + 
+    geom_violin() + 
+    theme_bw()
+}
+```
 
+
+```{r}
+get_violin(type_ratios) + geom_violin(fill = "#D81B60")
+get_violin(mode_ratios) + geom_violin(fill = "#1E88E5")
+get_violin(spec_ratios) + geom_violin(fill = "#FFC107")
+get_violin(prev_ratios) + geom_violin(fill = "#004D40")
+get_violin(int_ratios) + geom_violin(fill = "#D01BD6")
 ```
 
 
@@ -355,6 +366,135 @@ wilcox.test(ratio ~ prev_bin, data = ecoreg_filled)
 wilcox.test(ratio ~ int_bin, data = ecoreg_filled)
 ```
 
+
+
+Same thing by parasite type
+
+```{r}
+
+  actual_ecoreg_arth <- ecoreg_para_mat_vars %>% 
+    filter(ParType == "Arthropod") %>% 
+    dplyr::select(-group_vars) %>%
+    pivot_longer(all_of(ecoreg_names)) %>%
+    filter(value == TRUE) %>%
+    group_by(para) %>%
+    distinct() %>%
+    summarize(n_ecoreg = n())
+    
+  actual_ecoreg_helm <- ecoreg_para_mat_vars %>% 
+    filter(ParType == "Helminth") %>% 
+    dplyr::select(-group_vars) %>%
+    pivot_longer(all_of(ecoreg_names)) %>%
+    filter(value == TRUE) %>%
+    group_by(para) %>%
+    distinct() %>%
+    summarize(n_ecoreg = n())
+  
+  actual_ecoreg_bact <- ecoreg_para_mat_vars %>% 
+    filter(ParType == "Bacteria") %>% 
+    dplyr::select(-group_vars) %>%
+    pivot_longer(all_of(ecoreg_names)) %>%
+    filter(value == TRUE) %>%
+    group_by(para) %>%
+    distinct() %>%
+    summarize(n_ecoreg = n())
+  
+  actual_ecoreg_virus <- ecoreg_para_mat_vars %>% 
+    filter(ParType == "Virus") %>% 
+    dplyr::select(-group_vars) %>%
+    pivot_longer(all_of(ecoreg_names)) %>%
+    filter(value == TRUE) %>%
+    group_by(para) %>%
+    distinct() %>%
+    summarize(n_ecoreg = n())
+  
+  actual_ecoreg_prot <- ecoreg_para_mat_vars %>% 
+    filter(ParType == "Protozoa") %>% 
+    dplyr::select(-group_vars) %>%
+    pivot_longer(all_of(ecoreg_names)) %>%
+    filter(value == TRUE) %>%
+    group_by(para) %>%
+    distinct() %>%
+    summarize(n_ecoreg = n())
+  
+  max_ecoreg_arth <- null_para_df %>% 
+    filter(ParType == "Arthropod") %>% 
+    dplyr::select(para, name) %>% 
+    group_by(para) %>% distinct() %>% 
+    summarize(n_ecoreg = n())
+  
+  max_ecoreg_helm <- null_para_df %>% 
+    filter(ParType == "Helminth") %>% 
+    dplyr::select(para, name) %>% 
+    group_by(para) %>% distinct() %>% 
+    summarize(n_ecoreg = n())
+  
+  max_ecoreg_bact <- null_para_df %>% 
+    filter(ParType == "Bacteria") %>% 
+    dplyr::select(para, name) %>% 
+    group_by(para) %>% distinct() %>% 
+    summarize(n_ecoreg = n())
+  
+  max_ecoreg_virus <- null_para_df %>% 
+    filter(ParType == "Virus") %>% 
+    dplyr::select(para, name) %>% 
+    group_by(para) %>% distinct() %>% 
+    summarize(n_ecoreg = n())
+  
+  max_ecoreg_prot <- null_para_df %>% 
+    filter(ParType == "Protozoa") %>% 
+    dplyr::select(para, name) %>% 
+    group_by(para) %>% distinct() %>% 
+    summarize(n_ecoreg = n())
+  
+  max_ecoreg_arth %<>% 
+    left_join(., actual_ecoreg_arth, by=c("para")) %>% 
+    mutate(
+      n_ecoreg.y = replace_na(n_ecoreg.y, 0),
+      class = "Arthropod")
+  
+  max_ecoreg_helm %<>% 
+    left_join(., actual_ecoreg_helm, by=c("para")) %>% 
+    mutate(
+      n_ecoreg.y = replace_na(n_ecoreg.y, 0),
+      class = "Helminth")
+  
+  max_ecoreg_bact %<>% 
+    left_join(., actual_ecoreg_bact, by=c("para")) %>% 
+    mutate(
+      n_ecoreg.y = replace_na(n_ecoreg.y, 0),
+      class = "Bacteria")
+  
+  max_ecoreg_virus %<>% 
+    left_join(., actual_ecoreg_virus, by=c("para")) %>% 
+    mutate(
+      n_ecoreg.y = replace_na(n_ecoreg.y, 0),
+      class = "Virus")
+  
+  max_ecoreg_prot %<>% 
+    left_join(., actual_ecoreg_prot, by=c("para")) %>% 
+    mutate(
+      n_ecoreg.y = replace_na(n_ecoreg.y, 0),
+      class = "Protozoa")
+  
+  para_type_ecoreg <- rbind(max_ecoreg_arth, 
+                              max_ecoreg_helm,
+                              max_ecoreg_bact,
+                              max_ecoreg_virus,
+                              max_ecoreg_prot)
+  
+  para_type_ecoreg %<>% mutate(ratio = n_ecoreg.y/n_ecoreg.x)
+    
+```
+
+```{r}
+para_type_ecoreg %>% ggplot(., aes(x=class, y=ratio)) + geom_boxplot()
+para_type_ecoreg %>% ggplot(., aes(x=class, y=ratio)) + geom_violin()
+```
+
+```{r}
+pairwise.wilcox.test(para_type_ecoreg$ratio, para_type_ecoreg$class)
+```
 
 
 
