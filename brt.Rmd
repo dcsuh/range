@@ -14,6 +14,8 @@ library(tidyverse)
 library(magrittr)
 
 source(here("elith_tutorial", "brt.functions.R"))
+
+set.seed(8878896)
 ```
 
 ```{r}
@@ -179,14 +181,43 @@ brt3 <- gbm.step(as.data.frame(pres_abs_df_train),
 ```{r}
 summary(brt1)
 summary(brt2)
+summary(brt3)
+
+saveRDS(brt1, file = here("data", "processed_data", "brt", "full_data.rds"))
+saveRDS(brt2, file = here("data", "processed_data", "brt", "clim_only_data.rds"))
+saveRDS(brt3, file = here("data", "processed_data", "brt", "train_data.rds"))
 ```
 
 ```{r}
 gbm.plot(brt1, n.plots=6, plot.layout=c(2, 3), write.title = FALSE, common.scale = T, main = )
 ```
 
+
 ```{r}
-gbm.plot(brt1)
+test_preds <- gbm.predict.grids(brt3, new.dat = pres_abs_df_test)
+pres_abs_df_test %<>% add_column(preds = test_preds)
+
+```
+
+
+
+
+```{r}
+para_class <- readRDS(here("data", "processed_data", "para_class.rds"))
+pres_abs_df %<>% left_join(., para_class, by="para")
+```
+
+```{r}
+pres_abs_df_train <- pres_abs_df[train, ]
+pres_abs_df_test <- pres_abs_df[test, ]
+
+brt4 <- gbm.step(as.data.frame(pres_abs_df_train), 
+              gbm.x = c(4:ncol(pres_abs_df_train)), 
+              gbm.y = 3, 
+              family = "bernoulli", 
+              tree.complexity = 4, 
+              learning.rate = 0.01, 
+              bag.fraction = 0.5)
 ```
 
 

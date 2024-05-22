@@ -170,6 +170,10 @@ null_para_df %<>% left_join(., gmpd_int)
 ```
 
 
+```{r}
+para_class_data <- null_para_df %>% dplyr::select(-c(sci_name, name, value)) %>% distinct()
+saveRDS(para_class_data, file = here("data", "processed_data", "para_class.rds"))
+```
 
 
 
