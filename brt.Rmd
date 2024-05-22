@@ -54,3 +54,32 @@ brt <- gbm.step(data = as.data.frame(gmpd_ecoreg_psr),
 summary(brt)
 ```
 
+```{r}
+gbm.plot(brt, n.plots=6, plot.layout=c(2, 3), write.title = FALSE, common.scale = T)
+```
+
+
+
+
+
+
+```{r}
+prop_max_rich %<>% left_join(., gmpd_ecoreg_effort)
+prop_max_rich %<>% left_join(., worldclim_mean)
+
+prop_max_rich %<>% filter(!is.na(effort) & ratio<=1) %>% dplyr::select(-c(na, para.x, para.y))
+
+
+```
+
+```{r}
+brt_ratio <- gbm.step(as.data.frame(prop_max_rich), 
+              gbm.x = c(2,4:ncol(gmpd_ecoreg_psr)), 
+              gbm.y = 3, 
+              family = "", 
+              tree.complexity = 5, 
+              learning.rate = 0.004, 
+              bag.fraction = 0.5)
+```
+
+
