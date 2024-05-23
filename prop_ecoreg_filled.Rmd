@@ -134,8 +134,8 @@ gmpd_prev <- gmpd %>%
   summarize(Prevalence=mean(Prevalence)) %>% #get average prevalence
   mutate(prev_bin = ifelse(
     Prevalence > median(Prevalence), #above or below median
-    "high_prevalence",
-    "low_prevalence"
+    "high_prev",
+    "low_prev"
   ))
 
 tabyl(gmpd_prev$prev_bin)
@@ -279,17 +279,31 @@ get_violin <- function(df){
     filter(ratio<1) %>% 
     ggplot(., aes(x=binary, y=ratio)) + 
     geom_violin() + 
-    theme_bw()
+    #labs(x = "variable", y = "Actual/Theoretical PSR") + 
+    theme_bw() +
+    theme(axis.title = element_blank()) 
 }
 ```
 
 
 ```{r}
-get_violin(type_ratios) + geom_violin(fill = "#D81B60")
-get_violin(mode_ratios) + geom_violin(fill = "#1E88E5")
-get_violin(spec_ratios) + geom_violin(fill = "#FFC107")
-get_violin(prev_ratios) + geom_violin(fill = "#004D40")
-get_violin(int_ratios) + geom_violin(fill = "#D01BD6")
+theme_set(theme_bw(base_size=12))
+
+type_plot <- get_violin(type_ratios) + geom_violin(fill = "#D81B60") + ylim(0, 0.3) + labs(title = "Type")
+mode_plot <- get_violin(mode_ratios) + geom_violin(fill = "#1E88E5") + labs(title = "Mode")
+spec_plot <- get_violin(spec_ratios) + geom_violin(fill = "#FFC107") + labs(title = "Specialism")
+prev_plot <- get_violin(prev_ratios) + geom_violin(fill = "#004D40") + ylim(0, 0.3) + labs(title = "Prevalence")
+int_plot <- get_violin(int_ratios) + geom_violin(fill = "#D01BD6") + ylim(0, 0.3) + labs(title = "Intensity")
+
+violin_panel <- type_plot + prev_plot + int_plot + mode_plot + spec_plot 
+violin_panel
+
+ggsave(here("figures", "type_violin.png"), type_plot)
+ggsave(here("figures", "mode_violin.png"), mode_plot)
+ggsave(here("figures", "spec_violin.png"), spec_plot)
+ggsave(here("figures", "prev_violin.png"), prev_plot)
+ggsave(here("figures", "int_violin.png"), int_plot)
+ggsave(here("figures", "violin_panel.png"), violin_panel)
 ```
 
 
