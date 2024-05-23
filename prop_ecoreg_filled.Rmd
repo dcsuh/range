@@ -298,12 +298,12 @@ int_plot <- get_violin(int_ratios) + geom_violin(fill = "#D01BD6") + ylim(0, 0.3
 violin_panel <- type_plot + prev_plot + int_plot + mode_plot + spec_plot 
 violin_panel
 
-ggsave(here("figures", "type_violin.png"), type_plot)
-ggsave(here("figures", "mode_violin.png"), mode_plot)
-ggsave(here("figures", "spec_violin.png"), spec_plot)
-ggsave(here("figures", "prev_violin.png"), prev_plot)
-ggsave(here("figures", "int_violin.png"), int_plot)
-ggsave(here("figures", "violin_panel.png"), violin_panel)
+# ggsave(here("figures", "type_violin.png"), type_plot)
+# ggsave(here("figures", "mode_violin.png"), mode_plot)
+# ggsave(here("figures", "spec_violin.png"), spec_plot)
+# ggsave(here("figures", "prev_violin.png"), prev_plot)
+# ggsave(here("figures", "int_violin.png"), int_plot)
+# ggsave(here("figures", "violin_panel.png"), violin_panel)
 ```
 
 
