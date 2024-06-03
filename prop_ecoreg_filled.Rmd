@@ -283,6 +283,16 @@ get_violin <- function(df){
     theme_bw() +
     theme(axis.title = element_blank()) 
 }
+
+get_violin_alt <- function(df){
+  df %>% 
+    filter(ratio<1 & ratio >0) %>% 
+    ggplot(., aes(x=binary, y=ratio)) + 
+    geom_violin() + 
+    #labs(x = "variable", y = "Actual/Theoretical PSR") + 
+    theme_bw() +
+    theme(axis.title = element_blank()) 
+}
 ```
 
 
@@ -306,6 +316,26 @@ violin_panel
 # ggsave(here("figures", "violin_panel.png"), violin_panel)
 ```
 
+```{r}
+theme_set(theme_bw(base_size=12))
+
+type_plot <- get_violin_alt(type_ratios) + geom_violin(fill = "#D81B60") + ylim(0, 0.3) + labs(title = "Type")
+mode_plot <- get_violin_alt(mode_ratios) + geom_violin(fill = "#1E88E5") + labs(title = "Mode")
+spec_plot <- get_violin_alt(spec_ratios) + geom_violin(fill = "#FFC107") + labs(title = "Specialism")
+prev_plot <- get_violin_alt(prev_ratios) + geom_violin(fill = "#004D40") + ylim(0, 0.3) + labs(title = "Prevalence")
+int_plot <- get_violin_alt(int_ratios) + geom_violin(fill = "#D01BD6") + ylim(0, 0.3) + labs(title = "Intensity")
+
+violin_panel <- type_plot + prev_plot + int_plot + mode_plot + spec_plot 
+violin_panel
+
+# ggsave(here("figures", "type_violin.png"), type_plot)
+# ggsave(here("figures", "mode_violin.png"), mode_plot)
+# ggsave(here("figures", "spec_violin.png"), spec_plot)
+# ggsave(here("figures", "prev_violin.png"), prev_plot)
+# ggsave(here("figures", "int_violin.png"), int_plot)
+# ggsave(here("figures", "violin_panel_no_zeroes.png"), violin_panel)
+```
+
 
 two-tailed, non-parametric
 ```{r}
@@ -314,7 +344,20 @@ wilcox.test(ratio ~ binary, data = mode_ratios)
 wilcox.test(ratio ~ binary, data = spec_ratios)
 wilcox.test(ratio ~ binary, data = prev_ratios)
 wilcox.test(ratio ~ binary, data = int_ratios)
+
+0.05/5
 ```
+
+
+```{r}
+wilcox.test(ratio ~ binary, data = type_ratios %>% filter(ratio<1 & ratio>0))
+wilcox.test(ratio ~ binary, data = mode_ratios %>% filter(ratio<1 & ratio>0))
+wilcox.test(ratio ~ binary, data = spec_ratios %>% filter(ratio<1 & ratio>0))
+wilcox.test(ratio ~ binary, data = prev_ratios %>% filter(ratio<1 & ratio>0))
+wilcox.test(ratio ~ binary, data = int_ratios %>% filter(ratio<1 & ratio>0))
+```
+
+
 
 
 Do this once more but for all of the parasites and all of the ecoregions without subsetting to the different binary groups.

@@ -122,6 +122,8 @@ pres_abs_df <- null_para_df %>%
   left_join(., ecoreg_para_long, by = c("para", "name")) %>%
   mutate(pres = replace_na(pres, 0))
 
+pres_abs_full <- pres_abs_df
+
 hosts_available <- pres_abs_df %>% 
   dplyr::select(sci_name, para, name) %>% 
   group_by(para, name) %>% 
@@ -320,6 +322,45 @@ BIO17 = Precipitation of Driest Quarter
 BIO18 = Precipitation of Warmest Quarter
 
 BIO19 = Precipitation of Coldest Quarter
+
+
+
+```{r}
+pres_abs_full %<>% left_join(., para_class)
+pres_abs_full %<>% rename(ecoreg = name)
+pres_abs_full %<>% left_join(., worldclim_mean, by="ecoreg")
+pres_abs_full %<>% left_join(., gmpd_ecoreg_effort, by="ecoreg")
+```
+
+```{r}
+pres_abs_full %<>%
+  filter(ParType %in% c("Arthropod", "Helminth", "Virus", "Bacteria", "Protozoa")) %>%
+  mutate(ParType = as.factor(ParType),
+         ParMacroMicro = as.factor(ParMacroMicro),
+         mode = as.factor(mode),
+         spec_bin = as.factor(spec_bin),
+         prev_bin = as.factor(prev_bin),
+         int_bin = as.factor(int_bin))
+
+train <- sample(1:nrow(pres_abs_full), nrow(pres_abs_full) * 0.8)
+test <- pres_abs_full %>% mutate(row_num = rownames(.)) %>% filter(!row_num %in% train) %>% dplyr::select(row_num)
+test <- as.integer(test$row_num)
+
+pres_abs_full_train <- pres_abs_full[train, ]
+pres_abs_full_test <- pres_abs_full[test, ]
+```
+
+
+```{r}
+brt_full <- gbm.step(as.data.frame(pres_abs_full_train), 
+              gbm.x = c(6:ncol(pres_abs_full_train)), 
+              gbm.y = 5, 
+              family = "bernoulli", 
+              tree.complexity = 4, 
+              learning.rate = 0.05, 
+              bag.fraction = 0.5)
+```
+
 
 
 
