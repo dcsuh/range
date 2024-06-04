@@ -312,8 +312,8 @@ test <- as.integer(test$row_num)
 pres_abs_without_host_train <- pres_abs_without_host[train, ]
 pres_abs_without_host_test <- pres_abs_without_host[test, ]
 
-# saveRDS(pres_abs_without_host_train, file = here("data", "processed_data", "brt", "brt4_train_data.rds"))
-# saveRDS(pres_abs_without_host_test, file = here("data", "processed_data", "brt", "brt4_test_data.rds"))
+saveRDS(pres_abs_without_host_train, file = here("data", "processed_data", "brt", "brt4_train_data.rds"))
+saveRDS(pres_abs_without_host_test, file = here("data", "processed_data", "brt", "brt4_test_data.rds"))
 ```
 
 
@@ -326,7 +326,7 @@ brt4 <- gbm.step(as.data.frame(pres_abs_without_host_train),
               learning.rate = 0.05, 
               bag.fraction = 0.5)
 
-#saveRDS(brt4, file = here("data", "processed_data", "brt", "brt4_nopartype_lr0.05.rds"))
+saveRDS(brt4, file = here("data", "processed_data", "brt", "brt4_nopartype_lr0.05.rds"))
 ```
 
 
