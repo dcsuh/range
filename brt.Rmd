@@ -120,17 +120,19 @@ pres_abs_df <- null_para_df %>%
   left_join(., ecoreg_para_long, by = c("para", "name")) %>%
   mutate(pres = replace_na(pres, 0))
 
-pres_abs_full <- pres_abs_df
+pres_abs_full <- pres_abs_df #presences are duplicated here because sometimes a parasite is present in an ecoregion due to multiple hosts
 
 hosts_available <- pres_abs_df %>% 
   dplyr::select(sci_name, para, name) %>% 
   group_by(para, name) %>% 
   summarize(avail_hosts = n())
 
-pres_abs_df %<>% dplyr::select(para, name, pres) %>% distinct()
+pres_abs_df %<>% dplyr::select(para, name, pres) %>% distinct() #need to do this because parasite could be present in an ecoregion due to multiple hosts
 
 pres_abs_df %<>% left_join(., hosts_available)
 ```
+
+
 
 ```{r}
 pres_abs_df %<>% rename(ecoreg = name)
@@ -208,6 +210,90 @@ pres_abs_df %<>% left_join(., para_class, by="para")
 #pres_abs_df %<>% dplyr::select(-c(avail_hosts, effort)) 
 ```
 
+
+```{r}
+pres_abs_df %<>%
+  filter(ParType %in% c("Arthropod", "Helminth", "Virus", "Bacteria", "Protozoa")) %>%
+  mutate(ParType = as.factor(ParType),
+         ParMacroMicro = as.factor(ParMacroMicro),
+         mode = as.factor(mode),
+         spec_bin = as.factor(spec_bin),
+         prev_bin = as.factor(prev_bin),
+         int_bin = as.factor(int_bin))
+
+train <- sample(1:nrow(pres_abs_df), nrow(pres_abs_df) * 0.8)
+test <- pres_abs_df %>% mutate(row_num = rownames(.)) %>% filter(!row_num %in% train) %>% dplyr::select(row_num)
+test <- as.integer(test$row_num)
+
+pres_abs_df_train <- pres_abs_df[train, ]
+pres_abs_df_test <- pres_abs_df[test, ]
+```
+
+
+```{r, eval=F}
+brt_all <- gbm.step(as.data.frame(pres_abs_df_train), 
+              gbm.x = c(4:ncol(pres_abs_df_train)), 
+              gbm.y = 3, 
+              family = "bernoulli", 
+              tree.complexity = 4, 
+              learning.rate = 0.05, 
+              bag.fraction = 0.5)
+
+saveRDS(brt_all, file = here("data", "processed_data", "brt", "brt_all_lr0.05.rds"))
+```
+
+
+```{r}
+brt_all <- readRDS(file = here("data", "processed_data", "brt", "brt_all_lr0.05.rds"))
+summary(brt_all)
+gbm.plot(brt_all, n.plots=6, plot.layout=c(2, 3), write.title = FALSE, common.scale = T)
+```
+
+
+
+```{r}
+pres_abs_without_host <- pres_abs_df %>% dplyr::select(-c(avail_hosts, effort)) 
+
+pres_abs_without_host %<>%
+  filter(ParType %in% c("Arthropod", "Helminth", "Virus", "Bacteria", "Protozoa")) %>%
+  mutate(ParType = as.factor(ParType),
+         ParMacroMicro = as.factor(ParMacroMicro),
+         mode = as.factor(mode),
+         spec_bin = as.factor(spec_bin),
+         prev_bin = as.factor(prev_bin),
+         int_bin = as.factor(int_bin))
+
+train <- sample(1:nrow(pres_abs_without_host), nrow(pres_abs_without_host) * 0.8)
+test <- pres_abs_df %>% mutate(row_num = rownames(.)) %>% filter(!row_num %in% train) %>% dplyr::select(row_num)
+test <- as.integer(test$row_num)
+
+pres_abs_without_host_train <- pres_abs_without_host[train, ]
+pres_abs_without_host_test <- pres_abs_without_host[test, ]
+```
+
+
+```{r, eval=F}
+brt_partype <- gbm.step(as.data.frame(pres_abs_without_host_train), 
+              gbm.x = c(4:ncol(pres_abs_without_host_train)), 
+              gbm.y = 3, 
+              family = "bernoulli", 
+              tree.complexity = 4, 
+              learning.rate = 0.05, 
+              bag.fraction = 0.5)
+#saveRDS(brt_partype, file = here("data", "processed_data", "brt", "brt_partype_lr0.05.rds"))
+```
+
+
+
+
+```{r}
+brt_partype <- readRDS(file = here("data", "processed_data", "brt", "brt_partype_lr0.05.rds"))
+summary(brt_partype)
+gbm.plot(brt_partype, n.plots=6, plot.layout=c(2, 3), write.title = FALSE, common.scale = T)
+```
+
+
+
 ```{r}
 pres_abs_without_host <- pres_abs_df %>% dplyr::select(-c(avail_hosts, effort, ParType)) 
 
@@ -225,6 +311,9 @@ test <- as.integer(test$row_num)
 
 pres_abs_without_host_train <- pres_abs_without_host[train, ]
 pres_abs_without_host_test <- pres_abs_without_host[test, ]
+
+# saveRDS(pres_abs_without_host_train, file = here("data", "processed_data", "brt", "brt4_train_data.rds"))
+# saveRDS(pres_abs_without_host_test, file = here("data", "processed_data", "brt", "brt4_test_data.rds"))
 ```
 
 
@@ -236,51 +325,19 @@ brt4 <- gbm.step(as.data.frame(pres_abs_without_host_train),
               tree.complexity = 4, 
               learning.rate = 0.05, 
               bag.fraction = 0.5)
+
+#saveRDS(brt4, file = here("data", "processed_data", "brt", "brt4_nopartype_lr0.05.rds"))
 ```
 
 
+
 ```{r, eval=F}
-#saveRDS(brt4, file = here("data", "processed_data", "brt", "brt4_lr0.01.rds"))
-#saveRDS(brt4, file = here("data", "processed_data", "brt", "brt4_lr0.05.rds"))
-#saveRDS(brt4, file = here("data", "processed_data", "brt", "brt4_lesspartypes_lr0.05.rds"))
-#saveRDS(brt4, file = here("data", "processed_data", "brt", "brt4_lesspartypes_lr0.05.rds"))
+brt4 <- readRDS(file = here("data", "processed_data", "brt", "brt4_nopartype_lr0.05.rds"))
 summary(brt4)
 gbm.plot(brt4, n.plots=6, plot.layout=c(2, 3), write.title = FALSE, common.scale = T)
 ```
 
 
-```{r, eval=F}
-brt4_names <- brt4$var.names
-brt4_partype_no <- which(brt4_names %in% c("ParType"))
-gbm.plot(brt4, variable.no = brt4_partype_no, plot.layout=c(1, 1), write.title = FALSE)
-```
-
-
-
-```{r}
-
-brt1 <- readRDS(file = here("data", "processed_data", "brt", "full_data.rds"))
-#brt2 <- readRDS(file = here("data", "processed_data", "brt", "brt4_lr0.05.rds")) #includes fungi and prion
-brt3 <- readRDS(file = here("data", "processed_data", "brt", "brt4_lesspartypes_lr0.05.rds"))
-
-```
-
-
-No parasite data. includes # hosts and ecoregion study effort
-```{r}
-summary(brt1)
-gbm.plot(brt1, n.plots=6, plot.layout=c(2, 3), write.title = FALSE, common.scale = T)
-```
-
-
-```{r}
-summary(brt3)
-head(gbm.predict.grids(brt3, pres_abs_without_host_test))
-asdf <- predict(brt3, pres_abs_without_host_test)
-gbm.plot(brt3, n.plots=6, plot.layout=c(2, 3), write.title = FALSE, common.scale = T)
-
-roc(asdf, pres_abs_without_host_test$pres)
-```
 
 
 BIO1 = Annual Mean Temperature
@@ -324,40 +381,34 @@ BIO19 = Precipitation of Coldest Quarter
 
 
 ```{r}
-pres_abs_full %<>% left_join(., para_class)
-pres_abs_full %<>% rename(ecoreg = name)
-pres_abs_full %<>% left_join(., worldclim_mean, by="ecoreg")
-pres_abs_full %<>% left_join(., gmpd_ecoreg_effort, by="ecoreg")
+preds <- predict.gbm(brt4, pres_abs_without_host_test, n.trees = brt4$gbm.call$best.trees, type = "response")
+tmp <- cbind(pres_abs_without_host_test$pres, preds)
+pres <- tmp[tmp[,1]==1, 2]
+abs <- tmp[tmp[,1]==0, 2]
+e <- evaluate(p = pres, a = abs)
+e
+
+roc_test <- pROC::roc(pres_abs_without_host_test$pres, preds)
+plot.roc(roc_test,
+         xlim=c(1,0))
 ```
 
 ```{r}
-pres_abs_full %<>%
-  filter(ParType %in% c("Arthropod", "Helminth", "Virus", "Bacteria", "Protozoa")) %>%
-  mutate(ParType = as.factor(ParType),
-         ParMacroMicro = as.factor(ParMacroMicro),
-         mode = as.factor(mode),
-         spec_bin = as.factor(spec_bin),
-         prev_bin = as.factor(prev_bin),
-         int_bin = as.factor(int_bin))
+preds <- predict.gbm(brt_all, pres_abs_df_test, n.trees = brt_all$gbm.call$best.trees, type = "response")
+tmp <- cbind(pres_abs_df_test$pres, preds)
+pres <- tmp[tmp[,1]==1, 2]
+abs <- tmp[tmp[,1]==0, 2]
+e <- evaluate(p = pres, a = abs)
+e
 
-train <- sample(1:nrow(pres_abs_full), nrow(pres_abs_full) * 0.8)
-test <- pres_abs_full %>% mutate(row_num = rownames(.)) %>% filter(!row_num %in% train) %>% dplyr::select(row_num)
-test <- as.integer(test$row_num)
-
-pres_abs_full_train <- pres_abs_full[train, ]
-pres_abs_full_test <- pres_abs_full[test, ]
+roc_test <- pROC::roc(pres_abs_df_test$pres, preds)
+plot.roc(roc_test,
+         xlim=c(1,0))
 ```
 
 
-```{r}
-brt_full <- gbm.step(as.data.frame(pres_abs_full_train), 
-              gbm.x = c(6:ncol(pres_abs_full_train)), 
-              gbm.y = 5, 
-              family = "bernoulli", 
-              tree.complexity = 4, 
-              learning.rate = 0.1, 
-              bag.fraction = 0.5)
-```
+
+
 
 
 

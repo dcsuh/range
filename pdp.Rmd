@@ -1,0 +1,111 @@
+---
+title: "pdp"
+output: html_document
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(here)
+library(tidyverse)
+library(magrittr)
+
+library(dismo)
+library(gbm)
+library(pdp)
+library(cowplot)
+library(patchwork)
+
+source(here("elith_tutorial", "brt.functions.R"))
+```
+
+```{r}
+brt_mod <- readRDS(file = here("data", "processed_data", "brt", "brt4_nopartype_lr0.05.rds"))
+
+train_dat <- readRDS(file = here("data", "processed_data", "brt", "brt4_train_data.rds"))
+test_dat <- readRDS(file = here("data", "processed_data", "brt", "brt4_test_data.rds"))
+```
+
+```{r}
+preds <- predict.gbm(brt_mod, test_dat, n.trees = brt_mod$gbm.call$best.trees, type = "response")
+tmp <- cbind(test_dat$pres, preds)
+pres <- tmp[tmp[,1]==1, 2]
+abs <- tmp[tmp[,1]==0, 2]
+e <- evaluate(p = pres, a = abs)
+e
+```
+
+```{r}
+
+```
+
+
+```{r}
+make_plots <- function(model, var, bin_n = 40, y_fixed = F, y_axis, par_type = 0) {
+  
+  data <- model$gbm.call$dataframe
+  
+  var_no <- which(colnames(data) %in% c(var))
+  
+  inv <- pdp::partial(model, n.trees=model$n.trees, var, prob = T, train = data, inv.link = exp, recursive = F)
+  
+  x_max <- max(data[var_no], na.rm=T)
+  
+
+  if(y_fixed==T){
+    y_max = y_axis[2]
+    y_min = y_axis[1]
+  } else {
+    y_max = max(inv$yhat)
+    y_min <- min(inv$yhat)
+  }
+  
+  if(par_type=="helminth"){
+    col <- "red"
+  }else if(par_type=="arthropod"){
+    col <- "blue"
+  }else if(par_type=="virus"){
+    col <- "forestgreen"
+  }else if(par_type=="bacteria"){
+    col <- "hotpink"
+  }else if(par_type=="protozoa"){
+    col <- "purple"
+  }else {
+    col <- "black"
+  }
+  
+  plot1 <- inv %>%
+  na.omit() %>%
+  ggplot() +
+    geom_line(aes(x = .data[[var]], y = yhat),color=col,size=1) +
+    xlim(0,x_max)+
+    ylim(y_min,y_max)+
+    ylab("PSR") +
+    theme_minimal() +
+    theme(axis.title.x = element_blank())+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+    theme(axis.text.x=element_blank(),
+    axis.ticks.x=element_blank(),axis.text=element_text(size=12))
+
+  plot2 <- data %>%
+  dplyr::select(.data[[var]]) %>%
+  na.omit() %>%
+  ggplot(aes(.data[[var]])) +
+    geom_histogram(breaks = seq(0,x_max, x_max/bin_n), fill="gray") +
+    #geom_histogram(fill="gray",binwidth=20) +
+    scale_y_continuous(position = "right")+
+    ylab("") +
+    theme_minimal() +
+    theme(axis.title.x = element_blank(),axis.text=element_text(size=12))#+
+    #theme(plot.margin=unit(c(0,0,0,1.25),"cm"))
+  
+  plot1 <- add_sub(plot1,"")
+  plot2 <- add_sub(plot2,var,size=12)
+  
+  list(pdp=plot1,histo=plot2)
+}
+```
+
+
