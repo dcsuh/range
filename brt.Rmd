@@ -371,10 +371,53 @@ brt5 <- gbm.step(as.data.frame(pres_abs_traits_df_train),
               learning.rate = 0.05, 
               bag.fraction = 0.5)
 
-saveRDS(brt4, file = here("data", "processed_data", "brt", "brt5_nonbinary_lr0.05.rds"))
+saveRDS(brt5, file = here("data", "processed_data", "brt", "brt5_nonbinary_lr0.05.rds"))
+```
+
+```{r}
+summary(brt5)
+gbm.plot(brt5, n.plots=9, plot.layout=c(3, 3), write.title = FALSE, common.scale = T)
 ```
 
 
+```{r}
+pres_abs_traits_df %<>% dplyr::select(-c(effort, avail_hosts))
+# %<>%
+#   filter(ParType %in% c("Arthropod", "Helminth", "Virus", "Bacteria", "Protozoa")) %>%
+#   mutate(ParType = as.factor(ParType),
+#          ParMacroMicro = as.factor(ParMacroMicro),
+#          mode = as.factor(mode),
+#          spec_bin = as.factor(spec_bin),
+#          prev_bin = as.factor(prev_bin),
+#          int_bin = as.factor(int_bin))
+
+train <- sample(1:nrow(pres_abs_traits_df), nrow(pres_abs_traits_df) * 0.8)
+test <- pres_abs_traits_df %>% mutate(row_num = rownames(.)) %>% filter(!row_num %in% train) %>% dplyr::select(row_num)
+test <- as.integer(test$row_num)
+
+pres_abs_traits_df_train <- pres_abs_traits_df[train, ]
+pres_abs_traits_df_test <- pres_abs_traits_df[test, ]
+```
+
+
+
+```{r, eval=F}
+brt6 <- gbm.step(as.data.frame(pres_abs_traits_df_train), 
+              gbm.x = c(4:ncol(pres_abs_traits_df_train)), 
+              gbm.y = 3, 
+              family = "bernoulli", 
+              tree.complexity = 4, 
+              learning.rate = 0.05, 
+              bag.fraction = 0.5)
+
+saveRDS(brt6, file = here("data", "processed_data", "brt", "brt5_nonbinary_noeffort_lr0.05.rds"))
+```
+
+```{r}
+summary(brt6)
+gbm.plot(brt6, n.plots=6, plot.layout=c(2, 3), write.title = FALSE, common.scale = T)
+gbm.plot(brt6, n.plots=9, plot.layout=c(3, 3), write.title = FALSE, common.scale = T)
+```
 
 BIO1 = Annual Mean Temperature
 
