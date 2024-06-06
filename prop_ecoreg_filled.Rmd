@@ -78,11 +78,23 @@ There are some parasites called "not identified to genus" and these are differen
 ```{r}
 gmpd_type %<>% filter(!para == "not identified to genus")
 null_para_df %<>% filter(!para == "not identified to genus")
+```
 
+```{r}
+gmpd_type_dummy <- gmpd_type %>% 
+  dplyr::select(-c(ParMacroMicro)) %>% 
+  mutate(helminth = ifelse(ParType == "Helminth", 1, 0),
+         arthropod = ifelse(ParType == "Arthropod", 1, 0),
+         bacteria = ifelse(ParType == "Bacteria", 1, 0),
+         virus = ifelse(ParType == "Virus", 1, 0),
+         protozoa = ifelse(ParType == "Protozoa", 1, 0))
 ```
 
 
+
 ```{r}
+gmpd_traits %<>% rename(para = ParasiteCorrectedName)
+gmpd_traits %<>% left_join(., gmpd_type_dummy)
 null_para_df %<>% left_join(., gmpd_type)
 ```
 
@@ -94,7 +106,7 @@ gmpd_mode <- gmpd_traits %>% mutate(mode =
                                   "complex")) %>%
   filter(!is.na(mode)) #remove parasites without mode data
 
-gmpd_mode %<>% rename(para=ParasiteCorrectedName) %>% dplyr::select(para, mode)
+gmpd_mode %<>% dplyr::select(para, mode)
 ```
 
 
@@ -108,6 +120,10 @@ null_para_df %<>% left_join(., gmpd_mode)
 ```{r}
 load(file=here("data", "GMPD", "get_nri.Rda"))
 nri %<>% rownames_to_column(., var = "para")
+
+nri %<>% dplyr::select(para, mpd.obs.z)
+
+gmpd_traits %<>% left_join(., nri)
 
 nri %<>% 
   filter(!is.na(mpd.obs.z)) %>%
@@ -138,6 +154,16 @@ gmpd_prev <- gmpd %>%
     "low_prev"
   ))
 
+gmpd_prev_cont <- gmpd %>% 
+  dplyr::select(ParasiteCorrectedName, Prevalence) %>%
+  filter(!is.na(Prevalence)) %>% 
+  group_by(ParasiteCorrectedName) %>%
+  summarize(Prevalence=mean(Prevalence)) %>%
+  rename(para = ParasiteCorrectedName) %>% 
+  dplyr::select(para, Prevalence)
+
+gmpd_traits %<>% left_join(., gmpd_prev_cont)
+
 tabyl(gmpd_prev$prev_bin)
 
 gmpd_prev %<>% rename(para = ParasiteCorrectedName) %>% dplyr::select(para, prev_bin)
@@ -162,11 +188,28 @@ gmpd_int <- gmpd %>%
     "low_intensity"
   ))
 
+gmpd_int_cont <- gmpd %>%
+  dplyr::select(ParasiteCorrectedName, Intensity) %>%
+  mutate(Intensity = as.numeric(Intensity)) %>% #some intensity measures included characters to indicate exponent or range. these are removed for now
+  filter(!is.na(Intensity)) %>%
+  filter(Intensity>0) %>%
+  group_by(ParasiteCorrectedName) %>%
+  summarize(Intensity = mean(Intensity)) %>%
+  rename(para = ParasiteCorrectedName) %>% 
+  dplyr::select(para, Intensity)
+
+gmpd_traits %<>% left_join(., gmpd_int_cont)
+
 tabyl(gmpd_int$int_bin)
 
 gmpd_int %<>% rename(para = ParasiteCorrectedName) %>% dplyr::select(para, int_bin)
 
 null_para_df %<>% left_join(., gmpd_int)
+```
+
+```{r}
+gmpd_traits %<>% dplyr::select(-c(ParasiteTraitsCitation, ParType)) %>% distinct()
+saveRDS(gmpd_traits, file = here("data", "processed_data", "para_traits.rds"))
 ```
 
 
