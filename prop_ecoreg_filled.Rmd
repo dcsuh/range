@@ -359,6 +359,19 @@ violin_panel
 # ggsave(here("figures", "violin_panel.png"), violin_panel)
 ```
 
+#get means
+
+```{r}
+type_mean <- type_ratios %>% filter(ratio<1) %>% group_by(binary) %>% summarize(mean = mean(ratio))
+mode_mean <- mode_ratios %>% filter(ratio<1) %>% group_by(binary) %>% summarize(mean = mean(ratio))
+spec_mean <- spec_ratios %>% filter(ratio<1) %>% group_by(binary) %>% summarize(mean = mean(ratio))
+prev_mean <- prev_ratios %>% filter(ratio<1) %>% group_by(binary) %>% summarize(mean = mean(ratio))
+int_mean <- int_ratios %>% filter(ratio<1) %>% group_by(binary) %>% summarize(mean = mean(ratio))
+
+```
+
+
+
 ```{r}
 theme_set(theme_bw(base_size=12))
 
